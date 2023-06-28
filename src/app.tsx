@@ -1,9 +1,9 @@
-import Canvas from './canvas';
+import RenderCanvas from './render-canvas';
 
 export default function App() {
     return (
         <>
-            <Canvas />
+            <RenderCanvas />
         </>
     );
 }
