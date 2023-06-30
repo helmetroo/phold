@@ -2,9 +2,15 @@ import { TNetInput } from 'face-api.js';
 
 import Dimensions from './dimensions';
 
-// Remove CanvasImageSource
+type OpenGLImageSource =
+    ImageBitmap
+    | ImageData
+    | HTMLImageElement
+    | HTMLCanvasElement
+    | HTMLVideoElement;
+
 type RawSource =
-    TexImageSource & TNetInput;
+    OpenGLImageSource & TNetInput;
 
 export default abstract class Source {
     static readonly IDENTIFIER: string;

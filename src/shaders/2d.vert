@@ -1,12 +1,15 @@
-attribute vec4 vertexPos;
-attribute vec2 inTextureCoord;
+#version 300 es
+
+precision highp float;
+
+in vec2 vertexPos;
+in vec2 inTextureCoord;
 
 uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
 
-varying highp vec2 outTextureCoord;
+out vec2 outTextureCoord;
 
 void main(void) {
-  gl_Position = projectionMatrix * modelViewMatrix * vertexPos;
   outTextureCoord = inTextureCoord;
+  gl_Position = modelViewMatrix * vec4(vertexPos, 0.0f, 1.0f);
 }

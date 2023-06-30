@@ -1,8 +1,13 @@
-varying highp vec2 outTextureCoord;
+#version 300 es
+
+precision highp float;
+
+in vec2 outTextureCoord;
+out vec4 outColor;
 
 uniform sampler2D sampler;
 
 void main(void) {
-  highp vec4 texelColor = texture2D(sampler, outTextureCoord);
-  gl_FragColor = vec4(texelColor.rgb, texelColor.a);
+  vec4 texelColor = texture(sampler, outTextureCoord);
+  outColor = vec4(texelColor.rgb, texelColor.a);
 }

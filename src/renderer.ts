@@ -7,7 +7,9 @@ import TwoDVertShader from '@/shaders/2d.vert';
 import TwoDFragShader from '@/shaders/2d.frag';
 
 export default class Renderer {
-    private gl: WebGLRenderingContext;
+    private canvasCtrSizeMap: Map<HTMLCanvasElement, number[]>;
+    private resizeObserver: ResizeObserver;
+    private gl: WebGL2RenderingContext;
     private programInfo: ReturnType<Renderer['initShaderProgram']>;
     private buffers: ReturnType<Renderer['initBuffers']>;
     private texture: ReturnType<Renderer['initTexture']>;
@@ -20,11 +22,20 @@ export default class Renderer {
         this.updateTexture();
     }
 
-    constructor(canvasElem: HTMLCanvasElement, source: Source) {
+    constructor(canvas: HTMLCanvasElement, source: Source) {
+        // Watch for resizes (300x150 is the default size of a new canvas)
+        this.canvasCtrSizeMap = new Map([[canvas, [300, 150]]]);
+
+        const resizeObserver = new ResizeObserver(this.onResize.bind(this));
+        resizeObserver.observe(canvas, {
+            box: 'content-box'
+        });
+        this.resizeObserver = resizeObserver;
+
         // Init GL
-        const gl = canvasElem.getContext('webgl');
+        const gl = canvas.getContext('webgl2');
         if (!gl) {
-            throw new Error(`Your browser doesn't support WebGL or it's disabled.`);
+            throw new Error(`Your browser doesn't support WebGL 2 or it's disabled.`);
         }
 
         gl.clearColor(0.1, 0.1, 0.1, 1.0);
@@ -34,6 +45,8 @@ export default class Renderer {
         this.programInfo = this.initShaderProgram();
         this.buffers = this.initBuffers();
         this.texture = this.initTexture();
+
+        // WebGL expects pixels to be in bottom-to-top order
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
         this.source = source;
@@ -55,7 +68,9 @@ export default class Renderer {
         gl.linkProgram(program);
 
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            throw new Error(`Error occurred linking the shader program.`);
+            const linkErrMsg = `Error occurred linking a shader: ${gl.getProgramInfoLog(program)}`;
+            gl.deleteProgram(program);
+            throw new Error(linkErrMsg);
         }
 
         const programInfo = {
@@ -92,10 +107,10 @@ export default class Renderer {
 
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
         const positions = [
-            -1.0, -1.0, 0.0,
-            1.0, -1.0, 0.0,
-            1.0, 1.0, 0.0,
-            -1.0, 1.0, 0.0,
+            -1.0, -1.0,
+            1.0, -1.0,
+            1.0, 1.0,
+            -1.0, 1.0,
         ];
 
         gl.bufferData(
@@ -115,6 +130,7 @@ export default class Renderer {
             throw new Error(`Error occurred creating texture coord buffer.`);
         }
 
+        // 1 is right and top
         gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
         const texCoords = [
             0.0, 0.0,
@@ -224,8 +240,9 @@ export default class Renderer {
         gl.compileShader(shader);
 
         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            const compileErrMsg = `Error occurred compiling a shader: ${gl.getShaderInfoLog(shader)}`;
             gl.deleteShader(shader);
-            throw new Error(`Error occurred compiling a shader: ${gl.getShaderInfoLog(shader)}`)
+            throw new Error(compileErrMsg);
         }
 
         return shader;
@@ -252,19 +269,14 @@ export default class Renderer {
     private drawFrame() {
         const { gl, programInfo, buffers, texture } = this;
 
-        gl.clearColor(0.1, 0.1, 0.1, 1.0);
-        gl.clearDepth(1.0);
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
+        this.resizeCanvasToContainer();
 
         // Clear
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.clear(gl.COLOR_BUFFER_BIT);
 
-        const projectionMatrix = mat4.create();
-        mat4.ortho(projectionMatrix, -1.0, 1.0, -1.0, 1.0, -10, 10);
-
+        // Matrix transforms
         const modelViewMatrix = mat4.create();
-        mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -1.0]);
 
         this.setPositionAttribute();
         this.setTextureAttribute();
@@ -273,11 +285,6 @@ export default class Renderer {
 
         gl.useProgram(programInfo.program);
 
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.projectionMatrix,
-            false,
-            projectionMatrix
-        );
         gl.uniformMatrix4fv(
             programInfo.uniformLocations.modelViewMatrix,
             false,
@@ -295,10 +302,60 @@ export default class Renderer {
         gl.drawElements(gl.TRIANGLES, vertCount, vertType, offset);
     }
 
+    private onResize(entries: ResizeObserverEntry[]) {
+        const { canvasCtrSizeMap } = this;
+
+        for (const entry of entries) {
+            let width = entry.contentRect.width;
+            let height = entry.contentRect.height;
+            let dpr = window.devicePixelRatio;
+            if (entry.devicePixelContentBoxSize) {
+                // Typically the only correct path (see https://webgl2fundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html)
+                width = entry.devicePixelContentBoxSize[0].inlineSize;
+                height = entry.devicePixelContentBoxSize[0].blockSize;
+                dpr = 1;
+            } else if (entry.contentBoxSize) {
+                if (entry.contentBoxSize[0]) {
+                    width = entry.contentBoxSize[0].inlineSize;
+                    height = entry.contentBoxSize[0].blockSize;
+                } else {
+                    const contentBoxSize =
+                        ((entry.contentBoxSize as unknown) as ResizeObserverSize);
+                    width = contentBoxSize.inlineSize;
+                    height = contentBoxSize.blockSize;
+                }
+            }
+
+            const displayWidth = Math.round(width * dpr);
+            const displayHeight = Math.round(height * dpr);
+            canvasCtrSizeMap.set(
+                <HTMLCanvasElement>entry.target, [displayWidth, displayHeight]
+            );
+        }
+    }
+
+    private resizeCanvasToContainer() {
+        const { gl, canvasCtrSizeMap } = this;
+
+        const [ctrWidth, ctrHeight] =
+            canvasCtrSizeMap.get(<HTMLCanvasElement>gl.canvas)!;
+
+        const resize =
+            gl.canvas.width !== ctrWidth
+            || gl.canvas.height !== ctrHeight;
+
+        if (resize) {
+            gl.canvas.width = ctrWidth;
+            gl.canvas.height = ctrHeight;
+        }
+
+        return resize;
+    }
+
     private setPositionAttribute() {
         const { gl, programInfo, buffers } = this;
 
-        const numComponents = 3;
+        const numComponents = 2;
         const type = gl.FLOAT;
         const normalize = false;
         const stride = 0;
@@ -320,7 +377,7 @@ export default class Renderer {
     private setTextureAttribute() {
         const { gl, programInfo, buffers } = this;
 
-        const num = 2;
+        const numComponents = 2;
         const type = gl.FLOAT;
         const normalize = false;
         const stride = 0;
@@ -328,7 +385,7 @@ export default class Renderer {
         gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texCoord);
         gl.vertexAttribPointer(
             programInfo.attribLocations.textureCoord,
-            num,
+            numComponents,
             type,
             normalize,
             stride,
