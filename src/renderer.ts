@@ -1,13 +1,34 @@
 import { mat4 } from 'gl-matrix';
 
-import Source from '@/types/source';
+import type { Source, Face, RectPair } from '@/types';
+
 import BlankSource from './blank';
 
 import TwoDVertShader from '@/shaders/2d.vert';
 import TwoDFragShader from '@/shaders/2d.frag';
 
+const FULL_QUAD_VERTICES = [
+    -1.0, -1.0,
+    1.0, -1.0,
+    1.0, 1.0,
+    -1.0, 1.0
+];
+
+// Corresponds to bottom right and upper left triangle
+const FULL_QUAD_INDICES = [
+    0, 1, 2,
+    0, 2, 3
+];
+
+const FULL_QUAD_TEXCOORDS = [
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0
+];
+
 export default class Renderer {
-    private canvasCtrSizeMap: Map<HTMLCanvasElement, number[]>;
+    private canvasCtrSizeMap: Map<Element, number[]>;
     private resizeObserver: ResizeObserver;
     private gl: WebGL2RenderingContext;
     private programInfo: ReturnType<Renderer['initShaderProgram']>;
@@ -16,10 +37,19 @@ export default class Renderer {
 
     private running = false;
     private currentSource: Source = new BlankSource();
+    private currentFaces: Face[] = [];
 
     set source(newSource: Source) {
         this.currentSource = newSource;
         this.updateTexture();
+    }
+
+    get faces() {
+        return this.currentFaces;
+    }
+
+    set faces(newFolds: Face[]) {
+        this.currentFaces = newFolds;
     }
 
     constructor(canvas: HTMLCanvasElement, source: Source) {
@@ -80,8 +110,9 @@ export default class Renderer {
                 textureCoord: gl.getAttribLocation(program, 'inTextureCoord'),
             },
             uniformLocations: {
-                projectionMatrix: gl.getUniformLocation(program, 'projectionMatrix'),
-                modelViewMatrix: gl.getUniformLocation(program, 'modelViewMatrix'),
+                // texTransformMatrix: gl.getUniformLocation(program, 'texTransformMatrix'),
+                // vertTransformMatrix: gl.getUniformLocation(program, 'vertTransformMatrix'),
+                scaleToFitMatrix: gl.getUniformLocation(program, 'scaleToFitMatrix'),
                 sampler: gl.getUniformLocation(program, 'sampler'),
             }
         };
@@ -106,16 +137,9 @@ export default class Renderer {
         }
 
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        const positions = [
-            -1.0, -1.0,
-            1.0, -1.0,
-            1.0, 1.0,
-            -1.0, 1.0,
-        ];
-
         gl.bufferData(
             gl.ARRAY_BUFFER,
-            new Float32Array(positions),
+            new Float32Array(FULL_QUAD_VERTICES),
             gl.STATIC_DRAW
         );
 
@@ -132,16 +156,10 @@ export default class Renderer {
 
         // 1 is right and top
         gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
-        const texCoords = [
-            0.0, 0.0,
-            1.0, 0.0,
-            1.0, 1.0,
-            0.0, 1.0,
-        ]
 
         gl.bufferData(
             gl.ARRAY_BUFFER,
-            new Float32Array(texCoords),
+            new Float32Array(FULL_QUAD_TEXCOORDS),
             gl.STATIC_DRAW
         );
 
@@ -157,15 +175,9 @@ export default class Renderer {
         }
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-        // Corresponds to bottom right and upper left triangle
-        const indices = [
-            0, 1, 2,
-            0, 2, 3
-        ];
-
         gl.bufferData(
             gl.ELEMENT_ARRAY_BUFFER,
-            new Uint16Array(indices),
+            new Uint16Array(FULL_QUAD_INDICES),
             gl.STATIC_DRAW
         );
 
@@ -206,6 +218,7 @@ export default class Renderer {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
         return texture;
     }
@@ -274,28 +287,155 @@ export default class Renderer {
         // Clear
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.clear(gl.COLOR_BUFFER_BIT);
-
-        // Matrix transforms
-        const modelViewMatrix = mat4.create();
-
-        this.setPositionAttribute();
-        this.setTextureAttribute();
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
-
         gl.useProgram(programInfo.program);
 
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.modelViewMatrix,
-            false,
-            modelViewMatrix
-        );
+        // Setup attributes
+        this.setPositionAttribute();
+        this.setTextureAttribute();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
 
         // Bind the texture to the shader
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.uniform1i(programInfo.uniformLocations.sampler, 0);
 
+        const scaleToFitMatrix = mat4.create();
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.scaleToFitMatrix,
+            false,
+            scaleToFitMatrix
+        )
+
+        // Draw geom
+        Renderer.drawBackground(gl, buffers, programInfo);
+
+        for (const face of this.faces) {
+            Renderer.drawFaceFold(face.eyes, gl, buffers, programInfo);
+            //Renderer.drawFaceFold(face.mouth, gl, buffers, programInfo);
+        }
+    }
+
+    private static drawBackground(
+        gl: WebGL2RenderingContext,
+        buffers: Renderer['buffers'],
+        programInfo: Renderer['programInfo']
+    ) {
+        // Matrix transforms
+        /*
+        const vertTransformMatrix = mat4.create();
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.vertTransformMatrix,
+            false,
+            vertTransformMatrix
+        );
+
+        const texTransformMatrix = mat4.create();
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.texTransformMatrix,
+            false,
+            texTransformMatrix
+        );
+        */
+
+        // Reset to identity
+        const scaleToFitMatrix = mat4.create();
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.scaleToFitMatrix,
+            false,
+            scaleToFitMatrix
+        );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array(FULL_QUAD_VERTICES),
+            gl.STATIC_DRAW
+        );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texCoord);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array(FULL_QUAD_TEXCOORDS),
+            gl.STATIC_DRAW
+        );
+        this.drawQuad(gl);
+    }
+
+    private static drawFaceFold(
+        fold: RectPair,
+        gl: WebGL2RenderingContext,
+        buffers: Renderer['buffers'],
+        programInfo: Renderer['programInfo']
+    ) {
+        /*
+        const foldWidth = fold.max.x - fold.min.x;
+        const foldHeight = fold.max.y - fold.min.y;
+        const foldCenter = center(fold);
+        const foldAngle = angleBetween(
+            new Point(fold.max.x, fold.min.y),
+            new Point(fold.min.x, fold.min.y)
+        );
+
+        // Matrix transforms
+        const vertTransformMatrix = mat4.create();
+        mat4.scale(vertTransformMatrix, vertTransformMatrix, [2, 2, 1]);
+        mat4.rotate(vertTransformMatrix, vertTransformMatrix, foldAngle, [0, 0, 1]);
+        mat4.translate(vertTransformMatrix, vertTransformMatrix, [foldCenter.x, foldCenter.y, 0]);
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.vertTransformMatrix,
+            false,
+            vertTransformMatrix
+        );
+
+        const texTransformMatrix = mat4.create();
+        mat4.scale(texTransformMatrix, texTransformMatrix, [foldWidth, foldHeight, 1]);
+        mat4.translate(texTransformMatrix, texTransformMatrix, [foldCenter.x, foldCenter.y, 1]);
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.texTransformMatrix,
+            false,
+            texTransformMatrix
+        );
+        */
+
+        const scaleToFitMatrix = mat4.create();
+        mat4.scale(scaleToFitMatrix, scaleToFitMatrix, [1.5, 1.5, 1]);
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.scaleToFitMatrix,
+            false,
+            scaleToFitMatrix
+        );
+
+        const {
+            clipSpace: clipSpaceRect,
+            textureSpace: textureSpaceRect
+        } = fold;
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                clipSpaceRect.bl.x, clipSpaceRect.bl.y,
+                clipSpaceRect.br.x, clipSpaceRect.br.y,
+                clipSpaceRect.ur.x, clipSpaceRect.ur.y,
+                clipSpaceRect.ul.x, clipSpaceRect.ul.y,
+            ]),
+            gl.STATIC_DRAW
+        );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texCoord);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                textureSpaceRect.bl.x, textureSpaceRect.bl.y,
+                textureSpaceRect.br.x, textureSpaceRect.br.y,
+                textureSpaceRect.ur.x, textureSpaceRect.ur.y,
+                textureSpaceRect.ul.x, textureSpaceRect.ul.y,
+            ]),
+            gl.STATIC_DRAW
+        );
+        this.drawQuad(gl);
+    }
+
+    private static drawQuad(gl: WebGL2RenderingContext) {
         const vertCount = 6;
         const vertType = gl.UNSIGNED_SHORT;
         const offset = 0;
@@ -329,7 +469,7 @@ export default class Renderer {
             const displayWidth = Math.round(width * dpr);
             const displayHeight = Math.round(height * dpr);
             canvasCtrSizeMap.set(
-                <HTMLCanvasElement>entry.target, [displayWidth, displayHeight]
+                entry.target, [displayWidth, displayHeight]
             );
         }
     }
@@ -337,8 +477,13 @@ export default class Renderer {
     private resizeCanvasToContainer() {
         const { gl, canvasCtrSizeMap } = this;
 
-        const [ctrWidth, ctrHeight] =
-            canvasCtrSizeMap.get(<HTMLCanvasElement>gl.canvas)!;
+        const newDims =
+            canvasCtrSizeMap.get(<HTMLCanvasElement>gl.canvas);
+
+        if (!newDims)
+            return false;
+
+        const [ctrWidth, ctrHeight] = newDims;
 
         const resize =
             gl.canvas.width !== ctrWidth

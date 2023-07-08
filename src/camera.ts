@@ -69,6 +69,16 @@ export default class CameraSource extends Source {
             const stream =
                 await navigator.mediaDevices.getUserMedia({
                     video: {
+                        /*
+                        width: {
+                            ideal: 4096
+                        },
+
+                        height: {
+                            ideal: 2160
+                        },
+                        */
+
                         //facingMode
                     }
                 });

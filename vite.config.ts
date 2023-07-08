@@ -11,7 +11,7 @@ export default defineConfig({
         https: {
             key: readFileSync('./.cert/key.pem'),
             cert: readFileSync('./.cert/cert.pem'),
-        }
+        },
     },
 
     plugins: [
