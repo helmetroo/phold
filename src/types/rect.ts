@@ -11,6 +11,11 @@ export default interface Rect {
     bl: Point
 }
 
+export interface RectPair {
+    clipSpace: Rect, // [-1, 1]
+    textureSpace: Rect // [0, 1]
+}
+
 export function normalize(r: Rect, divisor: Point) {
     return {
         ul: normalizePoint(r.ul, divisor),

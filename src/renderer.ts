@@ -311,7 +311,7 @@ export default class Renderer {
 
         for (const face of this.faces) {
             Renderer.drawFaceFold(face.eyes, gl, buffers, programInfo);
-            //Renderer.drawFaceFold(face.mouth, gl, buffers, programInfo);
+            Renderer.drawFaceFold(face.mouth, gl, buffers, programInfo);
         }
     }
 

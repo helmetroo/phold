@@ -1,9 +1,4 @@
-import type Rect from './rect';
-
-interface RectPair {
-    clipSpace: Rect, // [-1, 1]
-    textureSpace: Rect // [0, 1]
-}
+import type { Rect, RectPair } from './rect';
 
 export default interface Face {
     eyes: RectPair,
