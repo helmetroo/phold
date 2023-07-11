@@ -1,16 +1,21 @@
 {
     "compilerOptions": {
+        "baseUrl": "src",
         "paths": {
             "@/shaders/*": [
-                "./src/shaders/*"
+                "shaders/*"
             ],
 
             "@/types/*": [
-                "./src/types/*"
+                "types/*"
+            ],
+
+            "@/ui/*": [
+                "ui/*"
             ],
 
             "@/utils/*": [
-                "./src/utils/*"
+                "utils/*"
             ]
         },
         "target": "ES2020",

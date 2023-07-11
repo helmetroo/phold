@@ -1,6 +1,8 @@
 import { mat4 } from 'gl-matrix';
 
-import type { Source, Face, RectPair } from '@/types';
+import type Source from '@/types/source';
+import type Face from '@/types/face';
+import type { RectPair } from '@/types/rect';
 
 import BlankSource from './blank';
 
@@ -110,8 +112,6 @@ export default class Renderer {
                 textureCoord: gl.getAttribLocation(program, 'inTextureCoord'),
             },
             uniformLocations: {
-                // texTransformMatrix: gl.getUniformLocation(program, 'texTransformMatrix'),
-                // vertTransformMatrix: gl.getUniformLocation(program, 'vertTransformMatrix'),
                 scaleToFitMatrix: gl.getUniformLocation(program, 'scaleToFitMatrix'),
                 sampler: gl.getUniformLocation(program, 'sampler'),
             }
@@ -321,21 +321,6 @@ export default class Renderer {
         programInfo: Renderer['programInfo']
     ) {
         // Matrix transforms
-        /*
-        const vertTransformMatrix = mat4.create();
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.vertTransformMatrix,
-            false,
-            vertTransformMatrix
-        );
-
-        const texTransformMatrix = mat4.create();
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.texTransformMatrix,
-            false,
-            texTransformMatrix
-        );
-        */
 
         // Reset to identity
         const scaleToFitMatrix = mat4.create();
@@ -367,38 +352,7 @@ export default class Renderer {
         buffers: Renderer['buffers'],
         programInfo: Renderer['programInfo']
     ) {
-        /*
-        const foldWidth = fold.max.x - fold.min.x;
-        const foldHeight = fold.max.y - fold.min.y;
-        const foldCenter = center(fold);
-        const foldAngle = angleBetween(
-            new Point(fold.max.x, fold.min.y),
-            new Point(fold.min.x, fold.min.y)
-        );
-
-        // Matrix transforms
-        const vertTransformMatrix = mat4.create();
-        mat4.scale(vertTransformMatrix, vertTransformMatrix, [2, 2, 1]);
-        mat4.rotate(vertTransformMatrix, vertTransformMatrix, foldAngle, [0, 0, 1]);
-        mat4.translate(vertTransformMatrix, vertTransformMatrix, [foldCenter.x, foldCenter.y, 0]);
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.vertTransformMatrix,
-            false,
-            vertTransformMatrix
-        );
-
-        const texTransformMatrix = mat4.create();
-        mat4.scale(texTransformMatrix, texTransformMatrix, [foldWidth, foldHeight, 1]);
-        mat4.translate(texTransformMatrix, texTransformMatrix, [foldCenter.x, foldCenter.y, 1]);
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.texTransformMatrix,
-            false,
-            texTransformMatrix
-        );
-        */
-
         const scaleToFitMatrix = mat4.create();
-        mat4.scale(scaleToFitMatrix, scaleToFitMatrix, [1.5, 1.5, 1]);
         gl.uniformMatrix4fv(
             programInfo.uniformLocations.scaleToFitMatrix,
             false,

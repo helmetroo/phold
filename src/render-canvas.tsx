@@ -3,14 +3,18 @@ import type { FaceLandmarks68 } from 'face-api.js';
 import * as faceApi from 'face-api.js';
 import { Point } from 'face-api.js';
 
-import type { Source, Rect, RectPair } from '@/types';
-import { normalize, toClipSpace } from '@/types/rect';
+import type Source from '@/types/source';
+import Rect from '@/types/rect';
 import CameraSource from './camera';
 import BlankSource from './blank';
 
 import Renderer from './renderer';
 import FaceWatcher from './face-watcher';
-import { getRadius } from '@/utils/point';
+import {
+    getRadius,
+    normalize,
+    toClipSpace
+} from '@/utils/point';
 
 const NINETY_DEGS = Math.PI / 2;
 
@@ -75,6 +79,13 @@ export default class RenderCanvas extends Component {
 
         const newFolds = faces.map(face => {
             const { landmarks } = face;
+            const jaw = landmarks.getJawOutline();
+            const faceCenter = toClipSpace(
+                normalize(
+                    faceApi.utils.getCenterPoint(jaw),
+                    normDivisor
+                )
+            );
 
             const {
                 rects: eyeRects,
@@ -82,20 +93,21 @@ export default class RenderCanvas extends Component {
                 a: eyeAngle,
                 bL: eyeIntcptLeft,
                 bR: eyeIntcptRight,
-            } = this.computeEyeFoldRects(landmarks, normDivisor);
+            } = this.computeEyeFoldRects(landmarks, faceCenter, normDivisor);
 
             const {
-                bl: eyeLeftGap,
-                br: eyeRightGap,
+                ul: eyeBottomLeft,
+                ur: eyeBottomRight,
             } = eyeRects.clipSpace;
 
             const {
                 rects: mouthRects
             } = this.computeMouthFoldRects(
                 landmarks,
+                faceCenter,
                 normDivisor,
-                eyeLeftGap,
-                eyeRightGap,
+                eyeBottomLeft,
+                eyeBottomRight,
                 eyeSlope,
                 eyeAngle,
                 eyeIntcptLeft,
@@ -115,6 +127,7 @@ export default class RenderCanvas extends Component {
 
     private computeEyeFoldRects(
         landmarks: FaceLandmarks68,
+        faceCenter: Point,
         normDivisor: Point
     ) {
         // Always assuming right eye is always right of left eye (no upside down)
@@ -125,8 +138,8 @@ export default class RenderCanvas extends Component {
         const rEyeRadius = getRadius(rEye);
 
         const r = Math.max(lEyeRadius, rEyeRadius);
-        let pX = 9.0 * r; // Horiz padding
-        let pY = 2.0 * r; // Vert padding
+        let pX = 4.0 * r; // Horiz padding
+        let pY = 1.6 * r; // Vert padding
 
         const lCenter = faceApi.utils.getCenterPoint(lEye);
         const rCenter = faceApi.utils.getCenterPoint(rEye);
@@ -188,15 +201,19 @@ export default class RenderCanvas extends Component {
             brX = urX;
         }
 
-        const rect = {
+        const rect = new Rect({
             ul: new Point(ulX, ulY),
             ur: new Point(urX, urY),
             br: new Point(brX, brY),
             bl: new Point(blX, blY),
-        } satisfies Rect;
+        });
 
-        const texSpaceRect = normalize(rect, normDivisor);
-        const clipSpaceRect = toClipSpace(texSpaceRect);
+        const normRect = rect.normalize(normDivisor);
+        const texSpaceRect = normRect;
+        const clipSpaceRect = normRect
+            .toClipSpace()
+            .scaleFromOrigin(faceCenter, new Point(1.3, 1.3));
+
         return {
             m,
             a,
@@ -211,9 +228,10 @@ export default class RenderCanvas extends Component {
 
     private computeMouthFoldRects(
         landmarks: FaceLandmarks68,
+        faceCenter: Point,
         normDivisor: Point,
-        eyeLeftGap: Point,
-        eyeRightGap: Point,
+        eyeBottomLeft: Point,
+        eyeBottomRight: Point,
         m: number,
         a: number,
         bL: number | null,
@@ -221,7 +239,7 @@ export default class RenderCanvas extends Component {
     ) {
         const mouth = landmarks.getMouth();
         const r = getRadius(mouth);
-        const p = 0.8 * r;
+        const p = 0.85 * r;
         const center = faceApi.utils.getCenterPoint(mouth);
 
         // Intercepts
@@ -268,24 +286,25 @@ export default class RenderCanvas extends Component {
             brX = urX;
         }
 
-        const rect = {
+        const rect = new Rect({
             ul: new Point(ulX, ulY),
             ur: new Point(urX, urY),
             br: new Point(brX, brY),
             bl: new Point(blX, blY),
-        } satisfies Rect;
+        });
 
-        const texSpaceRect = normalize(rect, normDivisor);
-        const clipSpaceRect = toClipSpace(texSpaceRect);
+        const normRect = rect.normalize(normDivisor);
+        const texSpaceRect = normRect;
+        const clipSpaceRect = normRect
+            .toClipSpace()
+            .scaleFromOrigin(faceCenter, new Point(1.3, 1.3));
 
         // Move mouth verts towards provided eye verts to close gap
-        const eyeMouthLeftGap = eyeLeftGap.sub(clipSpaceRect.bl).mul(new Point(0.5, 0.5));
-        //const bottomLeftGap = clipSpaceRect.ul.sub(clipSpaceRect.bl).mul(new Point(0.5, 0.5));
+        const eyeMouthLeftGap = eyeBottomLeft.sub(clipSpaceRect.bl);
         clipSpaceRect.ul = clipSpaceRect.ul.add(eyeMouthLeftGap);
         clipSpaceRect.bl = clipSpaceRect.bl.add(eyeMouthLeftGap);
 
-        const eyeMouthRightGap = eyeRightGap.sub(clipSpaceRect.br).mul(new Point(0.5, 0.5));
-        //const bottomRightGap = clipSpaceRect.ur.sub(clipSpaceRect.br).mul(new Point(0.5, 0.5));
+        const eyeMouthRightGap = eyeBottomRight.sub(clipSpaceRect.br);
         clipSpaceRect.ur = clipSpaceRect.ur.add(eyeMouthRightGap);
         clipSpaceRect.br = clipSpaceRect.br.add(eyeMouthRightGap);
 
