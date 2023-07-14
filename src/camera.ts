@@ -187,4 +187,12 @@ export default class CameraSource extends Source {
         this.destroyCameraStreamAndTracks();
         this.cameraVideo.remove();
     }
+
+    async pause() {
+        this.cameraVideo.pause();
+    }
+
+    async resume() {
+        await this.cameraVideo.play();
+    }
 }

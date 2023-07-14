@@ -1,4 +1,4 @@
-import { TNetInput } from 'face-api.js';
+import { TNetInput, Point } from 'face-api.js';
 
 import Dimensions from './dimensions';
 
@@ -17,6 +17,15 @@ export default abstract class Source {
 
     abstract getRaw(): RawSource;
     abstract getDimensions(): Dimensions;
+
     abstract load(): Promise<void>;
     abstract destroy(): void;
+
+    abstract pause(): void;
+    abstract resume(): Promise<void>;
+
+    getNormDivisor() {
+        const sourceDims = this.getDimensions();
+        return new Point(sourceDims.width - 1, sourceDims.height - 1);
+    }
 }

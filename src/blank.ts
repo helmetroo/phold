@@ -63,4 +63,7 @@ export default class BlankSource extends Source {
 
         this.rendered = false;
     }
+
+    pause() { }
+    async resume() { }
 }

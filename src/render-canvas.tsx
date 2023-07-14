@@ -1,326 +1,104 @@
 import { Component, createRef } from 'preact';
-import type { FaceLandmarks68 } from 'face-api.js';
-import * as faceApi from 'face-api.js';
-import { Point } from 'face-api.js';
-
-import type Source from '@/types/source';
-import Rect from '@/types/rect';
-import CameraSource from './camera';
-import BlankSource from './blank';
-
-import Renderer from './renderer';
-import FaceWatcher from './face-watcher';
-import {
-    getRadius,
-    normalize,
-    toClipSpace
-} from '@/utils/point';
-
-const NINETY_DEGS = Math.PI / 2;
 
 export default class RenderCanvas extends Component {
-    private ref = createRef();
+    private ref = createRef<HTMLCanvasElement>();
 
-    private renderer: Renderer | null = null;
-    private currentSource: Source = new BlankSource();
+    // Canvas resizing
+    private canvasCtrSizeMap: Map<Element, number[]> = new Map();
+    private resizeObserver: ResizeObserver = new ResizeObserver(this.onResize.bind(this));
 
-    private faceWatcher: FaceWatcher = new FaceWatcher();
-
-    async initInitialSource() {
-        this.currentSource = new CameraSource();
-
-        try {
-            await this.currentSource.load();
-        } catch (err) {
-            // TODO call err callback so a parent component can show err
-            this.currentSource.destroy();
-
-            this.currentSource = new BlankSource();
-            await this.currentSource.load();
-        }
+    get element() {
+        return this.ref.current;
     }
 
-    async componentDidMount() {
-        await this.initInitialSource();
-        await this.initFaceWatcher();
-        this.initRenderer();
+    componentDidMount() {
+        this.watchForResizes();
     }
 
     componentWillUnmount() {
-        this.renderer?.stop();
-        this.currentSource.destroy();
+        this.stopWatchingForResizes();
     }
 
-    private initRenderer() {
-        const canvasElem = this.ref.current as HTMLCanvasElement;
-        this.renderer = new Renderer(canvasElem, this.currentSource);
+    private watchForResizes() {
+        const canvas = this.ref.current;
+        if (!canvas)
+            return;
 
-        this.renderer.start();
-    }
-
-    private async initFaceWatcher() {
-        try {
-            await this.faceWatcher.load();
-            setTimeout(this.watchFaces.bind(this), 0);
-        } catch (_) {
-            // TODO display error
-        }
-    }
-
-    private async watchFaces() {
-        const faces =
-            await this.faceWatcher.detectFaces(this.currentSource);
-
-        const sourceDims = this.currentSource.getDimensions();
-        const normDivisor = new Point(
-            sourceDims.width - 1,
-            sourceDims.height - 1
-        );
-
-        const newFolds = faces.map(face => {
-            const { landmarks } = face;
-            const jaw = landmarks.getJawOutline();
-            const faceCenter = toClipSpace(
-                normalize(
-                    faceApi.utils.getCenterPoint(jaw),
-                    normDivisor
-                )
-            );
-
-            const {
-                rects: eyeRects,
-                m: eyeSlope,
-                a: eyeAngle,
-                bL: eyeIntcptLeft,
-                bR: eyeIntcptRight,
-            } = this.computeEyeFoldRects(landmarks, faceCenter, normDivisor);
-
-            const {
-                ul: eyeBottomLeft,
-                ur: eyeBottomRight,
-            } = eyeRects.clipSpace;
-
-            const {
-                rects: mouthRects
-            } = this.computeMouthFoldRects(
-                landmarks,
-                faceCenter,
-                normDivisor,
-                eyeBottomLeft,
-                eyeBottomRight,
-                eyeSlope,
-                eyeAngle,
-                eyeIntcptLeft,
-                eyeIntcptRight
-            );
-
-            return {
-                eyes: eyeRects,
-                mouth: mouthRects,
-            };
+        // (300x150 is the default size of a new canvas)
+        this.canvasCtrSizeMap.set(canvas, [300, 150]);
+        this.resizeObserver.observe(canvas, {
+            box: 'content-box'
         });
-
-        this.renderer!.faces = newFolds;
-
-        setTimeout(this.watchFaces.bind(this), 0);
     }
 
-    private computeEyeFoldRects(
-        landmarks: FaceLandmarks68,
-        faceCenter: Point,
-        normDivisor: Point
-    ) {
-        // Always assuming right eye is always right of left eye (no upside down)
-        const lEye = landmarks.getLeftEye();
-        const lEyeRadius = getRadius(lEye);
+    private stopWatchingForResizes() {
+        const canvas = this.ref.current;
+        if (!canvas)
+            return;
 
-        const rEye = landmarks.getRightEye();
-        const rEyeRadius = getRadius(rEye);
+        this.resizeObserver.unobserve(canvas);
+    }
 
-        const r = Math.max(lEyeRadius, rEyeRadius);
-        let pX = 4.0 * r; // Horiz padding
-        let pY = 1.6 * r; // Vert padding
-
-        const lCenter = faceApi.utils.getCenterPoint(lEye);
-        const rCenter = faceApi.utils.getCenterPoint(rEye);
-
-        // Angle and slope
-        const diff = rCenter.sub(lCenter);
-        const a = Math.atan2(diff.y, diff.x);
-        const m = diff.y / diff.x;
-
-        // Intercepts
-        const bU =
-            rCenter.y + pY * Math.sin(a + NINETY_DEGS)
-            - m * (rCenter.x + pX * Math.cos(a + NINETY_DEGS));
-
-        const bB =
-            rCenter.y + pY * Math.sin(a - NINETY_DEGS)
-            - m * (rCenter.x + pX * Math.cos(a - NINETY_DEGS));
-
-        let bR: number | null = null;
-        let bL: number | null = null;
-
-        // Rect points
-        let ulX = 0;
-        let ulY = bU;
-
-        let blX = 0;
-        let blY = bB;
-
-        let urX = 0;
-        let urY = bU;
-
-        let brX = 0;
-        let brY = bB;
-
-        if (m !== 0) {
-            pY *= Math.sin(a);
-            pX *= Math.cos(a);
-
-            bR = rCenter.y + pY + (rCenter.x + pX) / m;
-            bL = lCenter.y - pY + (lCenter.x - pX) / m;
-            const factor = m / (m * m + 1);
-
-            ulX = factor * (bL - bU);
-            ulY += m * ulX;
-
-            blX = factor * (bL - bB);
-            blY += m * blX;
-
-            urX = factor * (bR - bU);
-            urY += m * urX;
-
-            brX = factor * (bR - bB);
-            brY += m * brX;
-        } else {
-            ulX = lCenter.x - pX;
-            blX = ulX;
-
-            urX = rCenter.x + pX;
-            brX = urX;
-        }
-
-        const rect = new Rect({
-            ul: new Point(ulX, ulY),
-            ur: new Point(urX, urY),
-            br: new Point(brX, brY),
-            bl: new Point(blX, blY),
-        });
-
-        const normRect = rect.normalize(normDivisor);
-        const texSpaceRect = normRect;
-        const clipSpaceRect = normRect
-            .toClipSpace()
-            .scaleFromOrigin(faceCenter, new Point(1.3, 1.3));
-
-        return {
-            m,
-            a,
-            bL,
-            bR,
-            rects: {
-                textureSpace: texSpaceRect,
-                clipSpace: clipSpaceRect
+    private onResize(entries: ResizeObserverEntry[]) {
+        for (const entry of entries) {
+            let width = entry.contentRect.width;
+            let height = entry.contentRect.height;
+            let dpr = window.devicePixelRatio;
+            if (entry.devicePixelContentBoxSize) {
+                // Typically the only correct path (see https://webgl2fundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html)
+                width = entry.devicePixelContentBoxSize[0].inlineSize;
+                height = entry.devicePixelContentBoxSize[0].blockSize;
+                dpr = 1;
+            } else if (entry.contentBoxSize) {
+                if (entry.contentBoxSize[0]) {
+                    width = entry.contentBoxSize[0].inlineSize;
+                    height = entry.contentBoxSize[0].blockSize;
+                } else {
+                    const contentBoxSize =
+                        ((entry.contentBoxSize as unknown) as ResizeObserverSize);
+                    width = contentBoxSize.inlineSize;
+                    height = contentBoxSize.blockSize;
+                }
             }
-        };
+
+            const displayWidth = Math.round(width * dpr);
+            const displayHeight = Math.round(height * dpr);
+            this.canvasCtrSizeMap.set(
+                entry.target, [displayWidth, displayHeight]
+            );
+        }
     }
 
-    private computeMouthFoldRects(
-        landmarks: FaceLandmarks68,
-        faceCenter: Point,
-        normDivisor: Point,
-        eyeBottomLeft: Point,
-        eyeBottomRight: Point,
-        m: number,
-        a: number,
-        bL: number | null,
-        bR: number | null,
-    ) {
-        const mouth = landmarks.getMouth();
-        const r = getRadius(mouth);
-        const p = 0.85 * r;
-        const center = faceApi.utils.getCenterPoint(mouth);
+    resizeToContainer() {
+        const canvas = this.ref.current;
+        if (!canvas)
+            return;
 
-        // Intercepts
-        const bU =
-            center.y + p * Math.sin(a + NINETY_DEGS)
-            - m * (center.x + p * Math.cos(a + NINETY_DEGS));
+        const newDims =
+            this.canvasCtrSizeMap.get(canvas);
 
-        const bB =
-            center.y + p * Math.sin(a - NINETY_DEGS)
-            - m * (center.x + p * Math.cos(a - NINETY_DEGS));
+        if (!newDims)
+            return false;
 
-        // Rect points
-        let ulX = 0;
-        let ulY = bU;
+        const [ctrWidth, ctrHeight] = newDims;
 
-        let blX = 0;
-        let blY = bB;
+        const resize =
+            canvas.width !== ctrWidth
+            || canvas.height !== ctrHeight;
 
-        let urX = 0;
-        let urY = bU;
-
-        let brX = 0;
-        let brY = bB;
-
-        if (bL !== null && bR !== null) {
-            const factor = m / (m * m + 1);
-
-            ulX = factor * (bL - bU);
-            ulY += m * ulX;
-
-            blX = factor * (bL - bB);
-            blY += m * blX;
-
-            urX = factor * (bR - bU);
-            urY += m * urX;
-
-            brX = factor * (bR - bB);
-            brY += m * brX;
-        } else {
-            ulX = center.x - p;
-            blX = ulX;
-
-            urX = center.x + p;
-            brX = urX;
+        if (resize) {
+            canvas.width = ctrWidth;
+            canvas.height = ctrHeight;
         }
 
-        const rect = new Rect({
-            ul: new Point(ulX, ulY),
-            ur: new Point(urX, urY),
-            br: new Point(brX, brY),
-            bl: new Point(blX, blY),
-        });
-
-        const normRect = rect.normalize(normDivisor);
-        const texSpaceRect = normRect;
-        const clipSpaceRect = normRect
-            .toClipSpace()
-            .scaleFromOrigin(faceCenter, new Point(1.3, 1.3));
-
-        // Move mouth verts towards provided eye verts to close gap
-        const eyeMouthLeftGap = eyeBottomLeft.sub(clipSpaceRect.bl);
-        clipSpaceRect.ul = clipSpaceRect.ul.add(eyeMouthLeftGap);
-        clipSpaceRect.bl = clipSpaceRect.bl.add(eyeMouthLeftGap);
-
-        const eyeMouthRightGap = eyeBottomRight.sub(clipSpaceRect.br);
-        clipSpaceRect.ur = clipSpaceRect.ur.add(eyeMouthRightGap);
-        clipSpaceRect.br = clipSpaceRect.br.add(eyeMouthRightGap);
-
-        return {
-            rects: {
-                textureSpace: texSpaceRect,
-                clipSpace: clipSpaceRect
-            }
-        };
+        return resize;
     }
 
     render() {
         return (
             <canvas
                 ref={this.ref}
-                class='w-full h-full' />
+                class='w-full h-[calc(100vh-8rem)]' />
         );
     }
 }
