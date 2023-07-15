@@ -29,7 +29,11 @@ export default function generateFolds(face: DetectedFace, normDivisor: Point) {
         a: eyeAngle,
         bL: eyeIntcptLeft,
         bR: eyeIntcptRight,
-    } = computeEyeFoldRects(landmarks, faceCenter, normDivisor);
+    } = computeEyeFoldRects(
+        landmarks,
+        faceCenter,
+        normDivisor
+    );
 
     const {
         ul: eyeBottomLeft,
@@ -68,17 +72,18 @@ function computeEyeFoldRects(
     const rEye = landmarks.getRightEye();
     const rEyeRadius = getRadius(rEye);
 
+    // Eye size determined from "larger" eye, compute padding
     const r = Math.max(lEyeRadius, rEyeRadius);
-    let pX = 4.0 * r; // Horiz padding
-    let pY = 1.6 * r; // Vert padding
+    let pX = 3.0 * r;
+    let pY = 1.4 * r;
 
     const lCenter = faceApiUtils.getCenterPoint(lEye);
     const rCenter = faceApiUtils.getCenterPoint(rEye);
 
     // Angle and slope
     const diff = rCenter.sub(lCenter);
-    const a = Math.atan2(diff.y, diff.x);
     const m = diff.y / diff.x;
+    const a = Math.atan(m);
 
     // Intercepts
     const bU =
@@ -143,7 +148,16 @@ function computeEyeFoldRects(
     const texSpaceRect = normRect;
     const clipSpaceRect = normRect
         .toClipSpace()
-        .scaleFromOrigin(faceCenter, new Point(1.3, 1.3));
+        .scaleFromOrigin(faceCenter, new Point(1.5, 1.5));
+    const leftHeight = clipSpaceRect.ul.sub(clipSpaceRect.bl)
+        .mul(new Point(0.85, 0.85));
+    clipSpaceRect.ul = clipSpaceRect.ul.add(leftHeight);
+    clipSpaceRect.bl = clipSpaceRect.bl.add(leftHeight);
+
+    const rightHeight = clipSpaceRect.ur.sub(clipSpaceRect.br)
+        .mul(new Point(0.85, 0.85));
+    clipSpaceRect.ur = clipSpaceRect.ur.add(rightHeight);
+    clipSpaceRect.br = clipSpaceRect.br.add(rightHeight);
 
     return {
         m,
@@ -228,7 +242,7 @@ function computeMouthFoldRects(
     const texSpaceRect = normRect;
     const clipSpaceRect = normRect
         .toClipSpace()
-        .scaleFromOrigin(faceCenter, new Point(1.3, 1.3));
+        .scaleFromOrigin(faceCenter, new Point(1.5, 1.5));
 
     // Move mouth verts towards provided eye verts to close gap
     const eyeMouthLeftGap = eyeBottomLeft.sub(clipSpaceRect.bl);
