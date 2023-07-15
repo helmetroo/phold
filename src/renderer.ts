@@ -45,7 +45,6 @@ export default class Renderer {
     private currentSource: Source = new BlankSource();
     private currentFaceFolds: Folds[] = [];
 
-
     constructor(
         private onRequestResize: () => void
     ) { }
@@ -113,6 +112,14 @@ export default class Renderer {
 
         if (this.active)
             requestAnimationFrame(this.tickFrame.bind(this));
+    }
+
+    forceRender() {
+        if (!this.rendererContext)
+            return;
+
+        updateTexture(this.rendererContext.gl, this.rendererContext.texture, this.currentSource);
+        renderFolds(this.rendererContext, this.currentFaceFolds);
     }
 }
 

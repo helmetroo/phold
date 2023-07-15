@@ -1,5 +1,7 @@
 import { Component, createRef } from 'preact';
 
+import type Dimensions from '@/types/dimensions';
+
 export default class RenderCanvas extends Component {
     private ref = createRef<HTMLCanvasElement>();
 
@@ -12,26 +14,33 @@ export default class RenderCanvas extends Component {
     }
 
     componentDidMount() {
-        this.watchForResizes();
+        this.initResizeObserver();
+        this.watchResizes();
     }
 
     componentWillUnmount() {
-        this.stopWatchingForResizes();
+        this.stopWatchingResizes();
     }
 
-    private watchForResizes() {
+    private initResizeObserver() {
         const canvas = this.ref.current;
         if (!canvas)
             return;
 
-        // (300x150 is the default size of a new canvas)
-        this.canvasCtrSizeMap.set(canvas, [300, 150]);
+        this.canvasCtrSizeMap.set(canvas, [canvas.width, canvas.height]);
+    }
+
+    watchResizes() {
+        const canvas = this.ref.current;
+        if (!canvas)
+            return;
+
         this.resizeObserver.observe(canvas, {
             box: 'content-box'
         });
     }
 
-    private stopWatchingForResizes() {
+    stopWatchingResizes() {
         const canvas = this.ref.current;
         if (!canvas)
             return;
@@ -92,6 +101,25 @@ export default class RenderCanvas extends Component {
         }
 
         return resize;
+    }
+
+    resizeToDimensions({ width, height }: Dimensions) {
+        const canvas = this.ref.current;
+        if (!canvas)
+            return;
+
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    getAsImage() {
+        const canvas = this.ref.current;
+        if (!canvas)
+            return;
+
+        // TODO toBlob may be better to use
+        const img = canvas.toDataURL('image/jpeg', 1);
+        return img;
     }
 
     render() {

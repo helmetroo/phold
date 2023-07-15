@@ -126,7 +126,43 @@ export default class App extends Component {
     }
 
     private handleShutter() {
-        this.sourceManager.freeze();
+        if (!this.renderCanvas.current)
+            return;
+
+        this.sourceManager.pause();
+
+        const srcDims = this.sourceManager.current.getDimensions();
+        const renderCanvas = this.renderCanvas.current;
+
+        renderCanvas.stopWatchingResizes();
+
+        // TODO might be cool to show a flash and still freeze the image to show the user what they got
+        renderCanvas.resizeToDimensions(srcDims);
+        App.downloadCanvasImage(this.renderer, renderCanvas);
+
+        renderCanvas.watchResizes();
+
+        this.sourceManager.resume();
+    }
+
+    private static downloadCanvasImage(renderer: Renderer, renderCanvas: RenderCanvas) {
+        // Must trigger a re-render now or we get a blank image
+        renderer.forceRender();
+        const imageData = renderCanvas.getAsImage();
+        if (!imageData)
+            return;
+
+        // Forcing download requires us to create a proxy anchor tag
+        // and clicking it to trigger the download
+        const anchorElem = document.createElement('a');
+        anchorElem.setAttribute('href', imageData);
+
+        const fileName = `phold-image-${new Date().getTime()}.jpg`;
+        anchorElem.setAttribute('download', fileName);
+
+        document.body.appendChild(anchorElem);
+        anchorElem.click();
+        document.body.removeChild(anchorElem);
     }
 
     private onError(err: Error, usrMessage?: string) {

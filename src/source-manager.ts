@@ -29,14 +29,6 @@ export default class SourceManager {
         await this.currentSource.load();
     }
 
-    freeze() {
-        this.pause();
-
-        setTimeout(() => {
-            this.resume();
-        }, 5000);
-    }
-
     pause() {
         this.currentSource.pause();
     }
