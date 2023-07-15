@@ -1,5 +1,5 @@
 import type { FaceLandmarks68 } from 'face-api.js';
-import * as faceApi from 'face-api.js';
+import { utils as faceApiUtils } from 'face-api.js';
 import { Point } from 'face-api.js';
 
 import {
@@ -18,7 +18,7 @@ export default function generateFolds(face: DetectedFace, normDivisor: Point) {
     const jaw = landmarks.getJawOutline();
     const faceCenter = toClipSpace(
         normalize(
-            faceApi.utils.getCenterPoint(jaw),
+            faceApiUtils.getCenterPoint(jaw),
             normDivisor
         )
     );
@@ -72,8 +72,8 @@ function computeEyeFoldRects(
     let pX = 4.0 * r; // Horiz padding
     let pY = 1.6 * r; // Vert padding
 
-    const lCenter = faceApi.utils.getCenterPoint(lEye);
-    const rCenter = faceApi.utils.getCenterPoint(rEye);
+    const lCenter = faceApiUtils.getCenterPoint(lEye);
+    const rCenter = faceApiUtils.getCenterPoint(rEye);
 
     // Angle and slope
     const diff = rCenter.sub(lCenter);
@@ -171,7 +171,7 @@ function computeMouthFoldRects(
     const mouth = landmarks.getMouth();
     const r = getRadius(mouth);
     const p = 0.85 * r;
-    const center = faceApi.utils.getCenterPoint(mouth);
+    const center = faceApiUtils.getCenterPoint(mouth);
 
     // Intercepts
     const bU =
