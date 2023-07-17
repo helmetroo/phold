@@ -1,5 +1,3 @@
-import { mat4 } from 'gl-matrix';
-
 import type Source from '@/types/source';
 import type Folds from '@/types/face';
 import type { RectPair } from '@/types/rect';
@@ -156,7 +154,6 @@ function initLocations(
         },
 
         uniform: {
-            scaleToFitMatrix: gl.getUniformLocation(shaderProgram, 'scaleToFitMatrix'),
             sampler: gl.getUniformLocation(shaderProgram, 'sampler'),
         }
     }
@@ -317,38 +314,19 @@ function renderFolds(rendererGl: Context, faceFolds: Folds[]) {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(locations.uniform.sampler, 0);
 
-    // TODO this matrix will effectively fit the source inside the canvas
-    const scaleToFitMatrix = mat4.create();
-    gl.uniformMatrix4fv(
-        locations.uniform.scaleToFitMatrix,
-        false,
-        scaleToFitMatrix
-    )
-
     // Draw geom
-    drawBackground(gl, locations, buffers);
+    drawBackground(gl, buffers);
 
     for (const face of faceFolds) {
-        drawFaceFold(face.eyes, gl, locations, buffers);
-        drawFaceFold(face.mouth, gl, locations, buffers);
+        drawFaceFold(face.eyes, gl, buffers);
+        drawFaceFold(face.mouth, gl, buffers);
     }
 }
 
 function drawBackground(
     gl: WebGL2RenderingContext,
-    locations: Context['locations'],
     buffers: Context['buffers']
 ) {
-    // Matrix transforms
-
-    // Reset to identity
-    const scaleToFitMatrix = mat4.create();
-    gl.uniformMatrix4fv(
-        locations.uniform.scaleToFitMatrix,
-        false,
-        scaleToFitMatrix
-    );
-
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
     gl.bufferData(
         gl.ARRAY_BUFFER,
@@ -368,16 +346,8 @@ function drawBackground(
 function drawFaceFold(
     fold: RectPair,
     gl: WebGL2RenderingContext,
-    locations: Context['locations'],
     buffers: Context['buffers']
 ) {
-    const scaleToFitMatrix = mat4.create();
-    gl.uniformMatrix4fv(
-        locations.uniform.scaleToFitMatrix,
-        false,
-        scaleToFitMatrix
-    );
-
     const {
         clipSpace: clipSpaceRect,
         textureSpace: textureSpaceRect
