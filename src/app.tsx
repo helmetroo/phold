@@ -7,7 +7,8 @@ import generateFolds from './face-fold-generator';
 import Renderer from './renderer';
 
 import RenderCanvas from './render-canvas';
-import UIBar from '@/ui/bar';
+import SettingsBar from '@/ui/settings-bar';
+import ShutterBar from '@/ui/shutter-bar';
 import ErrorOverlay from '@/ui/error-overlay';
 
 export default class App extends Component {
@@ -26,6 +27,11 @@ export default class App extends Component {
         error: {
             showing: false,
             message: '',
+        },
+
+        srcDimensions: {
+            width: 1,
+            height: 1
         }
     };
 
@@ -111,6 +117,13 @@ export default class App extends Component {
     private syncSource() {
         this.renderer.source = this.sourceManager.current;
         this.faceWatcher.source = this.sourceManager.current;
+
+        const newSrcDimensions =
+            this.sourceManager.current.getDimensions();
+
+        this.setState({
+            srcDimensions: newSrcDimensions
+        });
     }
 
     private onDetectFaces(faces: DetectedFaces) {
@@ -196,7 +209,7 @@ export default class App extends Component {
     }
 
     private onRequestResize() {
-        this.renderCanvas.current?.resizeToContainer();
+        this.renderCanvas.current?.fitWithinContainer();
     }
 
     render() {
@@ -207,8 +220,14 @@ export default class App extends Component {
                     message={this.state.error.message}
                     onClose={this.hideError.bind(this)}
                 />
-                <RenderCanvas ref={this.renderCanvas} />
-                <UIBar
+                <SettingsBar
+                    settingsCallback={() => { }}
+                />
+                <RenderCanvas
+                    ref={this.renderCanvas}
+                    srcDimensions={this.state.srcDimensions}
+                />
+                <ShutterBar
                     shutterCallback={this.handleShutter.bind(this)}
                 />
             </>
