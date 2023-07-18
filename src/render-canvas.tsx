@@ -33,6 +33,18 @@ export default class RenderCanvas extends Component<Props> {
         this.resizeObserver.observe(canvas, {
             box: 'content-box'
         });
+
+        if (screen && screen.orientation) {
+            screen.orientation.addEventListener(
+                'change',
+                this.fitWithinContainer.bind(this)
+            );
+        } else {
+            window.addEventListener(
+                'orientationchange',
+                this.fitWithinContainer.bind(this)
+            );
+        }
     }
 
     stopWatchingResizes() {

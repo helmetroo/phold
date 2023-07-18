@@ -12,7 +12,10 @@ import ShutterBar from '@/ui/shutter-bar';
 import ErrorOverlay from '@/ui/error-overlay';
 
 export default class App extends Component {
-    private sourceManager = new SourceManager();
+    private sourceManager = new SourceManager({
+        beforeCameraReloads: this.beforeCameraReloads.bind(this),
+        onCameraReloaded: this.onCameraReloaded.bind(this)
+    });
     private faceWatcher = new FaceWatcher(this.onDetectFaces.bind(this));
     private renderer = new Renderer(this.onRequestResize.bind(this));
     private renderCanvas = createRef<RenderCanvas>();
@@ -60,7 +63,13 @@ export default class App extends Component {
     stop() {
         this.renderer.stop();
         this.faceWatcher.stop();
-        this.sourceManager.destroy();
+    }
+
+    private run() {
+        this.syncSource();
+
+        this.renderer.start();
+        this.faceWatcher.start();
     }
 
     async initCamera() {
@@ -107,13 +116,6 @@ export default class App extends Component {
         }
     }
 
-    private run() {
-        this.syncSource();
-
-        this.renderer.start();
-        this.faceWatcher.start();
-    }
-
     private syncSource() {
         this.renderer.source = this.sourceManager.current;
         this.faceWatcher.source = this.sourceManager.current;
@@ -142,7 +144,7 @@ export default class App extends Component {
         if (!this.renderCanvas.current)
             return;
 
-        this.sourceManager.pause();
+        this.sourceManager.pauseCurrent();
 
         const srcDims = this.sourceManager.current.getDimensions();
         const renderCanvas = this.renderCanvas.current;
@@ -155,7 +157,7 @@ export default class App extends Component {
 
         renderCanvas.watchResizes();
 
-        this.sourceManager.resume();
+        this.sourceManager.resumeCurrent();
     }
 
     private static downloadCanvasImage(renderer: Renderer, renderCanvas: RenderCanvas) {
@@ -210,6 +212,14 @@ export default class App extends Component {
 
     private onRequestResize() {
         this.renderCanvas.current?.fitWithinContainer();
+    }
+
+    private beforeCameraReloads() {
+        this.stop();
+    }
+
+    private onCameraReloaded() {
+        this.run();
     }
 
     render() {

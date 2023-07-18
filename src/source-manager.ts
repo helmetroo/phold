@@ -1,43 +1,77 @@
-import { Point } from 'face-api.js';
-
 import type Source from '@/types/source';
+import type Callback from '@/types/callback';
+
 import CameraSource from './camera';
 import BlankSource from './blank';
 
+interface Events {
+    beforeCameraReloads: Callback,
+    onCameraReloaded: Callback
+}
 export default class SourceManager {
     private currentSource: Source = new BlankSource();
+    private camera: CameraSource = new CameraSource();
+
+    private beforeCameraReloads: Callback;
+    private onCameraReloaded: Callback;
+
+    constructor(events: Events) {
+        this.beforeCameraReloads = events.beforeCameraReloads;
+        this.onCameraReloaded = events.onCameraReloaded;
+    }
 
     async initCamera() {
-        this.currentSource = new CameraSource();
-
         try {
-            await this.load();
+            await this.camera.load();
+            this.currentSource = this.camera;
+            this.watchForNeededCameraRefresh();
         } catch (err) {
-            // TODO call err callback so a parent component can show err
-            this.destroy();
+            this.camera.destroy();
 
             this.currentSource = new BlankSource();
-            await this.load();
+            await this.loadCurrent();
+
+            throw new Error('Camera unavailable.');
         }
+    }
+
+    private watchForNeededCameraRefresh() {
+        if (screen && screen.orientation) {
+            screen.orientation.addEventListener(
+                'change',
+                this.refreshCamera.bind(this)
+            );
+        } else {
+            window.addEventListener(
+                'orientationchange',
+                this.refreshCamera.bind(this)
+            );
+        }
+    }
+
+    private async refreshCamera() {
+        this.beforeCameraReloads();
+        await this.loadCurrent();
+        this.onCameraReloaded();
     }
 
     get current() {
         return this.currentSource;
     }
 
-    async load() {
+    async loadCurrent() {
         await this.currentSource.load();
     }
 
-    pause() {
+    pauseCurrent() {
         this.currentSource.pause();
     }
 
-    resume() {
+    resumeCurrent() {
         this.currentSource.resume();
     }
 
-    destroy() {
+    destroyCurrent() {
         this.currentSource.destroy();
     }
 }

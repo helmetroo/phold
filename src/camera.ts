@@ -61,7 +61,7 @@ export default class CameraSource extends Source {
 
     private async loadCamera(facingMode: FacingMode) {
         if (this.isActive)
-            this.destroyCameraStreamAndTracks();
+            this.removeCameraStreamAndTracks();
 
         try {
             // If other webcams we want to use are connected to a laptop and we use facingMode = 'user',
@@ -139,16 +139,16 @@ export default class CameraSource extends Source {
         });
     }
 
-    play() {
-        this.cameraVideo.play();
-    }
-
     pause() {
         this.cameraVideo.pause();
     }
 
+    async resume() {
+        await this.cameraVideo.play();
+    }
+
     private static getDimensions(cameraStream: MediaStream) {
-        const cameraVideoTrack = CameraSource.getVideoTrack(cameraStream);
+        const cameraVideoTrack = cameraStream.getVideoTracks()[0];
         const cameraVideoTrackSettings = cameraVideoTrack.getSettings();
 
         const dimensions: Dimensions = {
@@ -159,10 +159,6 @@ export default class CameraSource extends Source {
         return dimensions;
     }
 
-    private static getVideoTrack(cameraStream: MediaStream) {
-        return cameraStream.getVideoTracks()[0];
-    }
-
     getRaw() {
         return this.cameraVideo;
     }
@@ -171,24 +167,19 @@ export default class CameraSource extends Source {
         return this.cameraVideoDimensions;
     }
 
-    private destroyCameraStreamAndTracks() {
+    private removeCameraStreamAndTracks() {
         if (!this.cameraStream)
             return;
 
-        const cameraVideoTrack = CameraSource.getVideoTrack(this.cameraStream);
-        this.cameraStream.removeTrack(cameraVideoTrack);
-        cameraVideoTrack.stop();
-
-        // react-webcam also stops the entire stream (we should too?)
-        ((this.cameraStream as unknown) as MediaStreamTrack).stop();
+        const cameraVideoTracks = this.cameraStream.getVideoTracks();
+        for (const track of cameraVideoTracks) {
+            track.stop();
+            this.cameraStream.removeTrack(track);
+        }
     }
 
     destroy() {
-        this.destroyCameraStreamAndTracks();
+        this.removeCameraStreamAndTracks();
         this.cameraVideo.remove();
-    }
-
-    async resume() {
-        await this.cameraVideo.play();
     }
 }
