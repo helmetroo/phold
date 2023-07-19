@@ -1,20 +1,22 @@
 {
-  "name": "phacephold-v2",
+  "name": "phold",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-pwa-assets": "pwa-assets-generator"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.5.0",
+    "@vite-pwa/assets-generator": "^0.0.3",
     "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.25",
-    "tailwindcss": "^3.3.2",
+    "postcss": "^8.4.26",
+    "tailwindcss": "^3.3.3",
     "typescript": "^5.1.6",
-    "vite": "^4.4.2",
+    "vite": "^4.4.4",
     "vite-plugin-glsl": "^1.1.2",
     "vite-plugin-pwa": "^0.16.4",
     "vite-tsconfig-paths": "^4.2.0"
