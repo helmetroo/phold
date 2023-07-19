@@ -47,7 +47,6 @@ export default class CameraSource extends Source {
         // but we can hide it :)
         this.cameraVideo.style.position = 'absolute';
         this.cameraVideo.style.zIndex = '-1';
-        this.cameraVideo.style.visibility = 'hidden';
         this.cameraVideo.style.width = '1px';
         this.cameraVideo.style.height = '1px';
 
