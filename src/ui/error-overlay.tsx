@@ -1,9 +1,11 @@
 import CloseButton from './close-button';
 
+import type Callback from '@/types/callback';
+
 interface Props {
     visible: boolean,
     message: string,
-    onClose: () => void,
+    onClose: Callback,
 }
 export default function ErrorOverlay({ visible, message, onClose }: Props) {
     return (

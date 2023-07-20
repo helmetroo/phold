@@ -231,7 +231,6 @@ export default class App extends Component {
                     onClose={this.hideError.bind(this)}
                 />
                 <SettingsBar
-                    settingsCallback={() => { }}
                 />
                 <RenderCanvas
                     ref={this.renderCanvas}

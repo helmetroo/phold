@@ -1,7 +1,9 @@
 import Shutter from './shutter';
 
+import type Callback from '@/types/callback';
+
 interface Props {
-    shutterCallback: () => void,
+    shutterCallback: Callback,
 }
 export default function ShutterBar({ shutterCallback }: Props) {
     return (

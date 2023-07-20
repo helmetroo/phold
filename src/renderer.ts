@@ -1,3 +1,4 @@
+import type Callback from '@/types/callback';
 import type Source from '@/types/source';
 import type Folds from '@/types/face';
 import type { RectPair } from '@/types/rect';
@@ -44,7 +45,7 @@ export default class Renderer {
     private currentFaceFolds: Folds[] = [];
 
     constructor(
-        private onRequestResize: () => void
+        private onRequestResize: Callback
     ) { }
 
     initContextFromCanvas(canvas: HTMLCanvasElement) {

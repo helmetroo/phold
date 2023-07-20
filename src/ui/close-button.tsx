@@ -1,6 +1,8 @@
+import type Callback from '@/types/callback';
+
 interface Props {
     classes?: string,
-    callback: () => void,
+    callback: Callback,
 }
 export default function CloseButton({ classes, callback }: Props) {
     return (

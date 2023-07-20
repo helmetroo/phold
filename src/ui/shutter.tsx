@@ -1,7 +1,9 @@
 import { useState } from 'preact/hooks';
 
+import type Callback from '@/types/callback';
+
 interface ShutterProps {
-    pressCallback: () => void;
+    pressCallback: Callback,
 }
 export default function Shutter({ pressCallback }: ShutterProps) {
     const [animating, setAnimating] = useState(false);
