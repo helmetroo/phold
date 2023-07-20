@@ -54,8 +54,7 @@ export default defineConfig({
                     purpose: 'maskable',
                 }],
                 start_url: '/.',
-                display: 'standalone',
-                orientation: 'portrait',
+                display: 'fullscreen',
             }
         }),
         preact(),
