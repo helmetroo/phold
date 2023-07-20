@@ -6,12 +6,10 @@ export type Status =
     | 'active'
     | 'errored';
 
-export type FacingMode = 'user' | 'environment';
-
 export default class CameraSource extends Source {
     static readonly IDENTIFIER = 'camera-video-stream';
 
-    private facingMode: FacingMode = 'user';
+    private facingMode: ConstrainDOMString = 'default';
     private cameraStream: MediaStream | null = null;
     private cameraVideo: HTMLVideoElement;
     private cameraVideoDimensions: Dimensions = {
@@ -58,26 +56,29 @@ export default class CameraSource extends Source {
         await this.loadCamera(this.facingMode);
     }
 
-    private async loadCamera(facingMode: FacingMode) {
+    private async loadCamera(facingMode: ConstrainDOMString) {
         if (this.isActive)
             this.removeCameraStreamAndTracks();
 
         try {
             // If other webcams we want to use are connected to a laptop and we use facingMode = 'user',
             // only the laptop's embedded cam is enabled...
+            const vidTrackOpts: MediaTrackConstraints = {
+                width: {
+                    ideal: 1920
+                },
+
+                height: {
+                    ideal: 1080
+                },
+            };
+
+            if (facingMode !== 'default')
+                vidTrackOpts.facingMode = facingMode;
+
             const stream =
                 await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: {
-                            ideal: 1920
-                        },
-
-                        height: {
-                            ideal: 1080
-                        },
-
-                        //facingMode
-                    }
+                    video: vidTrackOpts
                 });
 
             this.cameraStream = stream;
@@ -121,7 +122,7 @@ export default class CameraSource extends Source {
         }
     }
 
-    async changeFacingMode(newFacingMode: FacingMode) {
+    async changeFacingMode(newFacingMode: ConstrainDOMString) {
         try {
             await this.loadCamera(newFacingMode);
             this.facingMode = newFacingMode;
