@@ -1,3 +1,4 @@
+import AppError from '@/types/app-error';
 import type Callback from '@/types/callback';
 import type Source from '@/types/source';
 import type Folds from '@/types/face';
@@ -51,7 +52,12 @@ export default class Renderer {
     initContextFromCanvas(canvas: HTMLCanvasElement) {
         const gl = canvas.getContext('webgl2');
         if (!gl) {
-            throw new Error(`Your browser doesn't support WebGL 2 or it's disabled.`);
+            throw new AppError(
+                'WebGL2UnsupportedErr', [
+                `This app requires your browser to support WebGL 2.`,
+                `It could also disabled. Please check your browser settings.`
+            ]
+            );
         }
 
         // Initial GL settings
@@ -128,7 +134,10 @@ function initShaderProgram(gl: WebGL2RenderingContext) {
 
     const program = gl.createProgram();
     if (!program) {
-        throw new Error(`Error occurred creating the shader program.`);
+        throw new AppError(
+            'ShaderProgramCreationErr',
+            `Error occurred creating the shader program.`
+        );
     }
 
     gl.attachShader(program, vertShader);
@@ -138,7 +147,10 @@ function initShaderProgram(gl: WebGL2RenderingContext) {
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         const linkErrMsg = `Error occurred linking a shader: ${gl.getProgramInfoLog(program)}`;
         gl.deleteProgram(program);
-        throw new Error(linkErrMsg);
+        throw new AppError(
+            'ShaderLinkErr',
+            linkErrMsg
+        );
     }
 
     return program;
@@ -171,7 +183,10 @@ function initBuffers(gl: WebGL2RenderingContext) {
 function initPositionBuffer(gl: WebGL2RenderingContext) {
     const positionBuffer = gl.createBuffer();
     if (!positionBuffer) {
-        throw new Error(`Error occurred creating position buffer.`);
+        throw new AppError(
+            'PositionBufferCreationErr',
+            `Error occurred creating position buffer.`
+        );
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -187,7 +202,10 @@ function initPositionBuffer(gl: WebGL2RenderingContext) {
 function initTexCoordBuffer(gl: WebGL2RenderingContext) {
     const texCoordBuffer = gl.createBuffer();
     if (!texCoordBuffer) {
-        throw new Error(`Error occurred creating texture coord buffer.`);
+        throw new AppError(
+            'TexCoordBufferCreationErr',
+            `Error occurred creating texture coord buffer.`
+        );
     }
 
     // 1 is right and top
@@ -205,7 +223,10 @@ function initTexCoordBuffer(gl: WebGL2RenderingContext) {
 function initIndexBuffer(gl: WebGL2RenderingContext) {
     const indexBuffer = gl.createBuffer();
     if (!indexBuffer) {
-        throw new Error(`Error occurred creating position buffer.`);
+        throw new AppError(
+            'PositionBufferCreationErr',
+            `Error occurred creating position buffer.`
+        );
     }
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -221,7 +242,10 @@ function initIndexBuffer(gl: WebGL2RenderingContext) {
 function initTexture(gl: WebGL2RenderingContext) {
     const texture = gl.createTexture();
     if (!texture) {
-        throw new Error(`Error occurred creating the source texture.`);
+        throw new AppError(
+            'TextureCreationErr',
+            `Error occurred creating the source texture.`
+        );
     }
 
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -282,7 +306,10 @@ function loadShader(
 ) {
     const shader = gl.createShader(type);
     if (!shader) {
-        throw new Error(`Error occurred creating a shader.`);
+        throw new AppError(
+            'ShaderCreationErr',
+            `Error occurred creating a shader.`
+        );
     }
 
     gl.shaderSource(shader, shaderSrc);
@@ -291,7 +318,10 @@ function loadShader(
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         const compileErrMsg = `Error occurred compiling a shader: ${gl.getShaderInfoLog(shader)}`;
         gl.deleteShader(shader);
-        throw new Error(compileErrMsg);
+        throw new AppError(
+            'ShaderCompilationErr',
+            compileErrMsg
+        );
     }
 
     return shader;

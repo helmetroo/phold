@@ -6,12 +6,23 @@ import type { DetectedFaces } from './face-watcher';
 import generateFolds from './face-fold-generator';
 import Renderer from './renderer';
 
+import AppError from '@/types/app-error';
+import type Dimensions from '@/types/dimensions';
+
 import RenderCanvas from './render-canvas';
 import SettingsBar from '@/ui/settings-bar';
 import ShutterBar from '@/ui/shutter-bar';
 import ErrorOverlay from '@/ui/error-overlay';
 
-export default class App extends Component {
+type State = {
+    error: {
+        showing: boolean,
+        message: string[] | string
+    },
+
+    srcDimensions: Dimensions
+}
+export default class App extends Component<{}, State> {
     private sourceManager = new SourceManager({
         beforeCameraReloads: this.beforeCameraReloads.bind(this),
         onCameraReloaded: this.onCameraReloaded.bind(this)
@@ -29,7 +40,7 @@ export default class App extends Component {
     state = {
         error: {
             showing: false,
-            message: '',
+            message: [],
         },
 
         srcDimensions: {
@@ -77,10 +88,7 @@ export default class App extends Component {
             await this.sourceManager.initCamera();
             this.availableFeatures.camera = true;
         } catch (err) {
-            this.onError(
-                err as Error,
-                `Your camera isn't available for use. Didn't intend this? You can re-enable it for this app in your browser settings, then refresh.`
-            );
+            this.onError(err as Error);
         }
     }
 
@@ -89,17 +97,17 @@ export default class App extends Component {
             await this.faceWatcher.load();
             this.availableFeatures.faceWatcher = true;
         } catch (err) {
-            this.onError(
-                err as Error,
-                `Face detector couldn't load. Please refresh and try again.`
-            );
+            this.onError(err as Error);
         }
     }
 
     private initRenderer() {
         const canvasElem = this.renderCanvas.current?.element;
         if (!canvasElem) {
-            const noCanvasErr = new Error('Canvas unavailable.');
+            const noCanvasErr = new AppError(
+                'CanvasUnavailableErr',
+                'Canvas unavailable.'
+            );
             this.onError(noCanvasErr);
 
             return;
@@ -109,10 +117,7 @@ export default class App extends Component {
             this.renderer.initContextFromCanvas(canvasElem);
             this.availableFeatures.renderer = true;
         } catch (err) {
-            this.onError(
-                err as Error,
-                `WebGL2 isn't available on your device. This app only works with devices supporting WebGL2.`
-            );
+            this.onError(err as Error);
         }
     }
 
@@ -180,23 +185,27 @@ export default class App extends Component {
         document.body.removeChild(anchorElem);
     }
 
-    private onError(err: Error, usrMessage?: string) {
+    private onError(err: Error) {
         this.logError(err);
 
         // Prevent new errors from updating if error modal already showing
         if (!this.showingError)
-            this.showError(usrMessage ?? err.message);
+            this.showError(err);
     }
 
     private logError(err: Error) {
         console.error(err);
     }
 
-    private showError(message: string) {
+    private showError(err: Error) {
+        const errMessage =
+            err instanceof AppError
+                ? err.message
+                : [`Unknown error.`, err.message]
         this.setState({
             error: {
                 showing: true,
-                message
+                message: errMessage
             }
         });
     }

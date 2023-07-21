@@ -1,5 +1,6 @@
 import Source from '@/types/source';
 import Dimensions from '@/types/dimensions';
+import AppError from '@/types/app-error';
 
 export type Status =
     'inactive'
@@ -61,8 +62,6 @@ export default class CameraSource extends Source {
             this.removeCameraStreamAndTracks();
 
         try {
-            // If other webcams we want to use are connected to a laptop and we use facingMode = 'user',
-            // only the laptop's embedded cam is enabled...
             const vidTrackOpts: MediaTrackConstraints = {
                 width: {
                     ideal: 1920
@@ -104,7 +103,10 @@ export default class CameraSource extends Source {
                 || (err.name === 'TrackStartError');
             if (cameraAlreadyInUse) {
                 const alreadyInUseErr =
-                    new Error(`Camera is unavailable for use. It's probably being used by another app. To use it here, disable it in other apps using it and try reloading.`);
+                    new AppError(
+                        'CamInUseErr',
+                        `Camera is unavailable for use. It's probably being used by another app. To use it here, disable it in other apps using it and try reloading.`
+                    );
                 throw alreadyInUseErr;
             }
 
@@ -112,12 +114,18 @@ export default class CameraSource extends Source {
                 (err.name === 'NotAllowedError');
             if (cameraRejected) {
                 const rejectedErr =
-                    new Error(`Camera is unavailable for use. If you want to re-enable it later, you can refresh or also allow the camera for this page in your browser settings.`);
+                    new AppError(
+                        'CamDisallowedErr',
+                        `Camera is unavailable for use. If you want to re-enable it later, you can refresh or also allow the camera for this page in your browser settings.`
+                    );
                 throw rejectedErr;
             }
 
             const unknownErr =
-                new Error(`Camera is unavailable. ${err.message}`);
+                new AppError(
+                    'CamUnknownErr',
+                    `Camera is unavailable. ${err.message}`
+                );
             throw unknownErr;
         }
     }
