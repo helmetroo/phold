@@ -6,8 +6,10 @@ import type { RectPair } from '@/types/rect';
 
 import BlankSource from './blank';
 
-import TwoDVertShader from '@/shaders/2d.vert';
-import TwoDFragShader from '@/shaders/2d.frag';
+import GL2VertShader from '@/shaders/2d.vert';
+import GL1VertShader from '@/shaders/2d-gl1.vert';
+import GL2FragShader from '@/shaders/2d.frag';
+import GL1FragShader from '@/shaders/2d-gl1.frag';
 
 const FULL_QUAD_VERTICES = [
     -1.0, -1.0,
@@ -29,8 +31,10 @@ const FULL_QUAD_TEXCOORDS = [
     0.0, 1.0
 ];
 
+type RenderingContext = WebGL2RenderingContext | WebGLRenderingContext;
+type GLVersion = 1 | 2;
 interface Context {
-    gl: WebGL2RenderingContext,
+    gl: RenderingContext,
     program: WebGLProgram,
     locations: ReturnType<typeof initLocations>,
     buffers: ReturnType<typeof initBuffers>,
@@ -50,14 +54,22 @@ export default class Renderer {
     ) { }
 
     initContextFromCanvas(canvas: HTMLCanvasElement) {
-        const gl = canvas.getContext('webgl2');
+        let gl: RenderingContext | null = canvas.getContext('webgl2');
+        let glVersion: GLVersion = 2;
+        console.info('Trying WebGL 2');
+
         if (!gl) {
-            throw new AppError(
-                'WebGL2UnsupportedErr', [
-                `This app requires your browser to support WebGL 2.`,
-                `It could also disabled. Please check your browser settings.`
-            ]
-            );
+            console.info('WebGL 2 unsupported. Trying WebGL 1');
+
+            gl = canvas.getContext('webgl');
+            glVersion = 1;
+
+            if (!gl) {
+                throw new AppError('WebGLUnsupportedErr', [
+                    `This app requires your browser to support WebGL.`,
+                    `It could also be disabled. Please check your browser settings.`
+                ]);
+            }
         }
 
         // Initial GL settings
@@ -66,7 +78,7 @@ export default class Renderer {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-        const program = initShaderProgram(gl);
+        const program = initShaderProgram(gl, glVersion);
         this.rendererContext = {
             gl,
             program,
@@ -128,9 +140,12 @@ export default class Renderer {
     }
 }
 
-function initShaderProgram(gl: WebGL2RenderingContext) {
-    const vertShader = loadShader(gl, gl.VERTEX_SHADER, TwoDVertShader);
-    const fragShader = loadShader(gl, gl.FRAGMENT_SHADER, TwoDFragShader);
+function initShaderProgram(gl: RenderingContext, version: GLVersion) {
+    const vertShaderFile = (version === 2) ? GL2VertShader : GL1VertShader;
+    const vertShader = loadShader(gl, gl.VERTEX_SHADER, vertShaderFile);
+
+    const fragShaderFile = (version === 2) ? GL2FragShader : GL1FragShader;
+    const fragShader = loadShader(gl, gl.FRAGMENT_SHADER, fragShaderFile);
 
     const program = gl.createProgram();
     if (!program) {
@@ -157,7 +172,7 @@ function initShaderProgram(gl: WebGL2RenderingContext) {
 }
 
 function initLocations(
-    gl: WebGL2RenderingContext,
+    gl: RenderingContext,
     shaderProgram: WebGLProgram
 ) {
     return {
@@ -172,7 +187,7 @@ function initLocations(
     }
 }
 
-function initBuffers(gl: WebGL2RenderingContext) {
+function initBuffers(gl: RenderingContext) {
     return {
         position: initPositionBuffer(gl),
         texCoord: initTexCoordBuffer(gl),
@@ -180,7 +195,7 @@ function initBuffers(gl: WebGL2RenderingContext) {
     };
 }
 
-function initPositionBuffer(gl: WebGL2RenderingContext) {
+function initPositionBuffer(gl: RenderingContext) {
     const positionBuffer = gl.createBuffer();
     if (!positionBuffer) {
         throw new AppError(
@@ -199,7 +214,7 @@ function initPositionBuffer(gl: WebGL2RenderingContext) {
     return positionBuffer;
 }
 
-function initTexCoordBuffer(gl: WebGL2RenderingContext) {
+function initTexCoordBuffer(gl: RenderingContext) {
     const texCoordBuffer = gl.createBuffer();
     if (!texCoordBuffer) {
         throw new AppError(
@@ -220,7 +235,7 @@ function initTexCoordBuffer(gl: WebGL2RenderingContext) {
     return texCoordBuffer;
 }
 
-function initIndexBuffer(gl: WebGL2RenderingContext) {
+function initIndexBuffer(gl: RenderingContext) {
     const indexBuffer = gl.createBuffer();
     if (!indexBuffer) {
         throw new AppError(
@@ -239,7 +254,7 @@ function initIndexBuffer(gl: WebGL2RenderingContext) {
     return indexBuffer;
 }
 
-function initTexture(gl: WebGL2RenderingContext) {
+function initTexture(gl: RenderingContext) {
     const texture = gl.createTexture();
     if (!texture) {
         throw new AppError(
@@ -280,7 +295,7 @@ function initTexture(gl: WebGL2RenderingContext) {
 }
 
 function updateTexture(
-    gl: WebGL2RenderingContext,
+    gl: RenderingContext,
     texture: WebGLTexture,
     source: Source
 ) {
@@ -300,7 +315,7 @@ function updateTexture(
 }
 
 function loadShader(
-    gl: WebGL2RenderingContext,
+    gl: RenderingContext,
     type: number,
     shaderSrc: string
 ) {
@@ -355,7 +370,7 @@ function renderFolds(rendererGl: Context, faceFolds: Folds[]) {
 }
 
 function drawBackground(
-    gl: WebGL2RenderingContext,
+    gl: RenderingContext,
     buffers: Context['buffers']
 ) {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
@@ -376,7 +391,7 @@ function drawBackground(
 
 function drawFaceFold(
     fold: RectPair,
-    gl: WebGL2RenderingContext,
+    gl: RenderingContext,
     buffers: Context['buffers']
 ) {
     const {
@@ -409,7 +424,7 @@ function drawFaceFold(
     drawQuad(gl);
 }
 
-function drawQuad(gl: WebGL2RenderingContext) {
+function drawQuad(gl: RenderingContext) {
     const vertCount = 6;
     const vertType = gl.UNSIGNED_SHORT;
     const offset = 0;
@@ -417,7 +432,7 @@ function drawQuad(gl: WebGL2RenderingContext) {
 }
 
 function setPositionAttribute(
-    gl: WebGL2RenderingContext,
+    gl: RenderingContext,
     locations: Context['locations'],
     buffers: Context['buffers']
 ) {
@@ -441,7 +456,7 @@ function setPositionAttribute(
 }
 
 function setTextureAttribute(
-    gl: WebGL2RenderingContext,
+    gl: RenderingContext,
     locations: Context['locations'],
     buffers: Context['buffers']
 ) {
