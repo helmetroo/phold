@@ -42,7 +42,7 @@ interface Context {
 }
 
 export default class Renderer {
-    private active = false;
+    private requestId: number | null = null;
 
     private rendererContext: Context | null = null;
 
@@ -92,7 +92,7 @@ export default class Renderer {
         this.currentSource = newSource;
 
         if (this.rendererContext) {
-            updateTexture(
+            replaceTexture(
                 this.rendererContext.gl,
                 this.rendererContext.texture,
                 this.currentSource
@@ -109,13 +109,13 @@ export default class Renderer {
     }
 
     stop() {
-        this.active = false;
+        if (this.requestId)
+            cancelAnimationFrame(this.requestId);
     }
 
     start() {
-        this.active = true;
-
-        requestAnimationFrame(this.tickFrame.bind(this));
+        this.requestId =
+            requestAnimationFrame(this.tickFrame.bind(this));
     }
 
     private tickFrame(_: number) {
@@ -127,8 +127,7 @@ export default class Renderer {
         updateTexture(this.rendererContext.gl, this.rendererContext.texture, this.currentSource);
         renderFolds(this.rendererContext, this.currentFaceFolds);
 
-        if (this.active)
-            requestAnimationFrame(this.tickFrame.bind(this));
+        this.requestId = requestAnimationFrame(this.tickFrame.bind(this));
     }
 
     forceRender() {
@@ -294,7 +293,7 @@ function initTexture(gl: RenderingContext) {
     return texture;
 }
 
-function updateTexture(
+function replaceTexture(
     gl: RenderingContext,
     texture: WebGLTexture,
     source: Source
@@ -311,7 +310,27 @@ function updateTexture(
         srcFormat,
         srcType,
         source.getRaw()
-    )
+    );
+}
+
+function updateTexture(
+    gl: RenderingContext,
+    texture: WebGLTexture,
+    source: Source
+) {
+    const level = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        level,
+        0,
+        0,
+        srcFormat,
+        srcType,
+        source.getRaw()
+    );
 }
 
 function loadShader(

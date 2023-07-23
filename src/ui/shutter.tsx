@@ -19,7 +19,7 @@ export default function Shutter({ pressCallback }: ShutterProps) {
             onAnimationEnd={() => setAnimating(false)}
         >
             <div class='rounded-[50%] w-full h-full border-8 border-neutral-50 flex justify-center items-center'>
-                <div class={`${animating && 'animate-button-press'} rounded-[50%] bg-neutral-50 w-[86%] h-[86%] duration-[25]`} />
+                <div class={`${animating && 'animate-shutter-press'} rounded-[50%] bg-neutral-50 w-[86%] h-[86%] duration-[25]`} />
             </div>
         </button>
     );

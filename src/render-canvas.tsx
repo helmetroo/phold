@@ -3,7 +3,6 @@ import { Component, createRef } from 'preact';
 import type Dimensions from '@/types/dimensions';
 
 interface Props {
-    srcDimensions: Dimensions;
 }
 export default class RenderCanvas extends Component<Props> {
     private canvasRef = createRef<HTMLCanvasElement>();
@@ -13,8 +12,17 @@ export default class RenderCanvas extends Component<Props> {
     private resizeObserver: ResizeObserver
         = new ResizeObserver(this.onResize.bind(this));
 
+    private srcDimensions: Dimensions = {
+        width: 1,
+        height: 1,
+    }
+
     get element() {
         return this.canvasRef.current;
+    }
+
+    syncDimensions(newSrcDimensions: Dimensions) {
+        this.srcDimensions = newSrcDimensions;
     }
 
     componentDidMount() {
@@ -37,12 +45,12 @@ export default class RenderCanvas extends Component<Props> {
         if (screen && screen.orientation) {
             screen.orientation.addEventListener(
                 'change',
-                this.fitWithinContainer.bind(this)
+                this.resizeToContainer.bind(this)
             );
         } else {
             window.addEventListener(
                 'orientationchange',
-                this.fitWithinContainer.bind(this)
+                this.resizeToContainer.bind(this)
             );
         }
     }
@@ -55,7 +63,7 @@ export default class RenderCanvas extends Component<Props> {
         this.resizeObserver.unobserve(canvas);
     }
 
-    fitWithinContainer() {
+    resizeToContainer() {
         const canvas = this.canvasRef.current;
         const ctr = this.ctrRef.current;
         if (!canvas || !ctr) {
@@ -68,7 +76,7 @@ export default class RenderCanvas extends Component<Props> {
         const {
             width: srcWidth,
             height: srcHeight
-        } = this.props.srcDimensions;
+        } = this.srcDimensions;
         const widthRatio = ctrWidth / srcWidth;
         const heightRatio = ctrHeight / srcHeight;
         const smallerRatio = Math.min(widthRatio, heightRatio);
@@ -83,10 +91,6 @@ export default class RenderCanvas extends Component<Props> {
         canvas.height = srcHeight * smallerRatio;
     }
 
-    private onResize(_: ResizeObserverEntry[]) {
-        this.fitWithinContainer();
-    }
-
     resizeToDimensions({ width, height }: Dimensions) {
         const canvas = this.canvasRef.current;
         if (!canvas)
@@ -94,6 +98,10 @@ export default class RenderCanvas extends Component<Props> {
 
         canvas.width = width;
         canvas.height = height;
+    }
+
+    private onResize(_: ResizeObserverEntry[]) {
+        this.resizeToContainer();
     }
 
     getAsImage() {

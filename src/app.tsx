@@ -7,7 +7,7 @@ import generateFolds from './face-fold-generator';
 import Renderer from './renderer';
 
 import AppError from '@/types/app-error';
-import type Dimensions from '@/types/dimensions';
+import type ChosenFile from '@/types/chosen-file';
 
 import RenderCanvas from './render-canvas';
 import SettingsBar from '@/ui/settings-bar';
@@ -19,8 +19,6 @@ type State = {
         showing: boolean,
         message: string[] | string
     },
-
-    srcDimensions: Dimensions
 }
 export default class App extends Component<{}, State> {
     private sourceManager = new SourceManager({
@@ -41,11 +39,6 @@ export default class App extends Component<{}, State> {
         error: {
             showing: false,
             message: [],
-        },
-
-        srcDimensions: {
-            width: 1,
-            height: 1
         }
     };
 
@@ -55,11 +48,17 @@ export default class App extends Component<{}, State> {
 
     async componentDidMount() {
         await this.init();
-        this.run();
+
+        // If camera ready must wait for it to be playing
+        // or else we will get errors in texSubImage2D(...)
+        if (this.availableFeatures.camera)
+            await this.sourceManager.resumeCurrent();
+
+        this.startAll();
     }
 
     componentWillUnmount() {
-        this.stop();
+        this.stopAll();
     }
 
     async init() {
@@ -71,12 +70,12 @@ export default class App extends Component<{}, State> {
         ]);
     }
 
-    stop() {
+    stopAll() {
         this.renderer.stop();
         this.faceWatcher.stop();
     }
 
-    private run() {
+    private startAll() {
         this.syncSource();
 
         this.renderer.start();
@@ -122,21 +121,22 @@ export default class App extends Component<{}, State> {
     }
 
     private syncSource() {
-        this.renderer.source = this.sourceManager.current;
-        this.faceWatcher.source = this.sourceManager.current;
+        const currentSource = this.sourceManager.current;
+        this.renderer.source = currentSource;
+        this.faceWatcher.source = currentSource;
 
-        const newSrcDimensions =
-            this.sourceManager.current.getDimensions();
-
-        this.setState({
-            srcDimensions: newSrcDimensions
-        });
+        const currentSourceDims = currentSource.getDimensions();
+        this.renderCanvas.current?.syncDimensions(currentSourceDims);
     }
 
     private onDetectFaces(faces: DetectedFaces) {
         if (!this.renderer)
             return;
 
+        this.setFoldsFromFaces(faces);
+    }
+
+    private setFoldsFromFaces(faces: DetectedFaces) {
         const normDivisor = this.sourceManager.current.getNormDivisor();
         const newFolds = faces.map(
             face => generateFolds(face, normDivisor)
@@ -145,20 +145,43 @@ export default class App extends Component<{}, State> {
         this.renderer.folds = newFolds;
     }
 
-    private handleShutter() {
-        if (!this.renderCanvas.current)
+    private async handleChosenImage(chosenFile: ChosenFile) {
+        const renderCanvas = this.renderCanvas.current;
+        if (!renderCanvas)
             return;
 
         this.sourceManager.pauseCurrent();
 
-        const srcDims = this.sourceManager.current.getDimensions();
+        this.stopAll();
+
+        await this.sourceManager.setAndLoadFromImage(chosenFile);
+        this.syncSource();
+
+        renderCanvas.resizeToContainer();
+
+        const imageFaces = await this.faceWatcher.detectFaces();
+        this.setFoldsFromFaces(imageFaces);
+
+        this.renderer.forceRender();
+    }
+
+    private handleShutter() {
         const renderCanvas = this.renderCanvas.current;
+        if (!renderCanvas)
+            return;
+
+        this.sourceManager.pauseCurrent();
 
         renderCanvas.stopWatchingResizes();
 
         // TODO might be cool to show a flash and still freeze the image to show the user what they got
+        const srcDims = this.sourceManager.current.getDimensions();
         renderCanvas.resizeToDimensions(srcDims);
         App.downloadCanvasImage(this.renderer, renderCanvas);
+
+        // After resizing we have to render again or the canvas goes blank
+        renderCanvas.resizeToContainer();
+        this.renderer.forceRender();
 
         renderCanvas.watchResizes();
 
@@ -166,7 +189,7 @@ export default class App extends Component<{}, State> {
     }
 
     private static downloadCanvasImage(renderer: Renderer, renderCanvas: RenderCanvas) {
-        // Must trigger a re-render now or we get a blank image
+        // Must trigger a re-render now or we would download a blank image
         renderer.forceRender();
         const imageData = renderCanvas.getAsImage();
         if (!imageData)
@@ -220,15 +243,18 @@ export default class App extends Component<{}, State> {
     }
 
     private onRequestResize() {
-        this.renderCanvas.current?.fitWithinContainer();
+        this.renderCanvas.current?.resizeToContainer();
     }
 
     private beforeCameraReloads() {
-        this.stop();
+        this.stopAll();
     }
 
-    private onCameraReloaded() {
-        this.run();
+    private async onCameraReloaded() {
+        if (this.availableFeatures.camera)
+            await this.sourceManager.resumeCurrent();
+        this.startAll();
+        this.renderer.forceRender();
     }
 
     render() {
@@ -243,9 +269,9 @@ export default class App extends Component<{}, State> {
                 />
                 <RenderCanvas
                     ref={this.renderCanvas}
-                    srcDimensions={this.state.srcDimensions}
                 />
                 <ShutterBar
+                    pickImageCallback={this.handleChosenImage.bind(this)}
                     shutterCallback={this.handleShutter.bind(this)}
                 />
             </>

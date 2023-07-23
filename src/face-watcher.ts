@@ -66,7 +66,7 @@ export default class FaceWatcher {
         setTimeout(this.watchFaces.bind(this), 0);
     }
 
-    private async detectFaces() {
+    async detectFaces() {
         const rawImageSrc = this.currentSource.getRaw();
         const faces = await detectAllFaces(rawImageSrc, this.options)
             .withFaceLandmarks(true);

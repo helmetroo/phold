@@ -1,14 +1,18 @@
 import type Source from '@/types/source';
 import type Callback from '@/types/callback';
+import type ChosenFile from '@/types/chosen-file';
 
 import CameraSource from './camera';
+import ImageSource from './image';
 import BlankSource from './blank';
 
+type CurrentSourceType = 'camera' | 'image' | 'blank';
 interface Events {
     beforeCameraReloads: Callback,
     onCameraReloaded: Callback
 }
 export default class SourceManager {
+    private currentSourceType: CurrentSourceType = 'blank';
     private currentSource: Source = new BlankSource();
     private camera: CameraSource = new CameraSource();
 
@@ -23,7 +27,10 @@ export default class SourceManager {
     async initCamera() {
         try {
             await this.camera.load();
+
             this.currentSource = this.camera;
+            this.currentSourceType = 'camera';
+
             this.watchForNeededCameraRefresh();
         } catch (err) {
             this.camera.destroy();
@@ -55,6 +62,17 @@ export default class SourceManager {
         this.onCameraReloaded();
     }
 
+    async setAndLoadFromImage(chosenFile: ChosenFile) {
+        if (this.currentSourceType === 'image')
+            this.destroyCurrent();
+
+        const imageSource = new ImageSource(chosenFile);
+
+        await imageSource.load();
+        this.currentSource = imageSource;
+        this.currentSourceType = 'image';
+    }
+
     get current() {
         return this.currentSource;
     }
@@ -67,8 +85,8 @@ export default class SourceManager {
         this.currentSource.pause();
     }
 
-    resumeCurrent() {
-        this.currentSource.resume();
+    async resumeCurrent() {
+        await this.currentSource.resume();
     }
 
     destroyCurrent() {
