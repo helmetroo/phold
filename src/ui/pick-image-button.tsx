@@ -13,7 +13,11 @@ export default function PickImageButton({ chooseCallback }: Props) {
     const [animating, setAnimating] = useState(false);
 
     function onPress() {
-        fileInput.current?.click();
+        if (!fileInput.current)
+            return;
+
+        fileInput.current.value = '';
+        fileInput.current.click();
         setAnimating(true);
     }
 
