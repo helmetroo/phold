@@ -1,5 +1,6 @@
 import { Component, createRef } from 'preact';
 
+import AppError from '@/types/app-error';
 import type Dimensions from '@/types/dimensions';
 
 interface Props {
@@ -104,14 +105,40 @@ export default class RenderCanvas extends Component<Props> {
         this.resizeToContainer();
     }
 
-    getAsImage() {
+    getDataUrl() {
         const canvas = this.canvasRef.current;
         if (!canvas)
-            return;
+            return null;
 
         // TODO toBlob may be better to use
         const img = canvas.toDataURL('image/jpeg', 1);
         return img;
+    }
+
+    async getBlobUrl() {
+        const canvas = this.canvasRef.current;
+        if (!canvas) {
+            throw new AppError(
+                'ImageGenerateErr',
+                'Image could not be saved because a reference to the canvas is missing.'
+            );
+        }
+
+        return new Promise<string>((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    return reject(
+                        new AppError(
+                            'ImageGenerateErr',
+                            'Image could not be saved due to an unknown issue.'
+                        )
+                    );
+                }
+
+                const blobUrl = URL.createObjectURL(blob);
+                return resolve(blobUrl);
+            }, 'image/jpeg', 1);
+        });
     }
 
     render() {

@@ -8,7 +8,7 @@ interface Props {
     classes?: string,
     callback: Callback,
 }
-export default function CloseButton({ classes, callback }: Props) {
+export default function XButton({ classes, callback }: Props) {
     const [animating, setAnimating] = useState(false);
     function onPress() {
         setAnimating(true);

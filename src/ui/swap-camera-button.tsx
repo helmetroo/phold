@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 
-import type Callback from '@/types/callback';
+//import type Callback from '@/types/callback';
 
 import Icon from './icon';
 

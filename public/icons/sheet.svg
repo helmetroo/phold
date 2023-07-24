@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <symbol id="close" viewBox="0 0 27 27">
-      <path d="M3 2.5L24.5 24" stroke-width="5" stroke-linecap="round"/>
-      <path d="M24.5 2.5L3 24" stroke-width="5" stroke-linecap="round"/>
+    <symbol id="close" viewBox="0 0 139.41 139.41">
+      <line x1="27.58" y1="27.58" x2="111.82" y2="111.82" style="fill:none; stroke-linecap:round; stroke-miterlimit:10; stroke-width:9px;"/>
+      <line x1="111.82" y1="27.58" x2="27.58" y2="111.82" style="fill:none; stroke-linecap:round; stroke-miterlimit:10; stroke-width:9px;"/>
     </symbol>
     <symbol id="upload" viewBox="0 0 139.41 139.41">
       <path d="m115.64,88.3v20.32c0,3.74-3.91,6.77-8.72,6.77H32.49c-4.82,0-8.72-3.03-8.72-6.77v-20.32" style="fill:none; stroke-linecap:round; stroke-miterlimit:10; stroke-width:9px;"/>
@@ -15,6 +15,9 @@
       <polygon points="48.13 94.39 21.38 81.69 23.76 111.21 48.13 94.39"/>
       <path d="m21.38,66.12C30.46,33.81,60.12,16.26,87.63,26.93c7.21,2.79,13.56,7.25,18.83,12.89" style="fill:none; stroke-linecap:round; stroke-miterlimit:10; stroke-width:9px;"/>
       <polygon points="91.27 45.02 118.03 57.72 115.65 28.2 91.27 45.02"/>
+    </symbol>
+    <symbol id="check" viewBox="0 0 139.41 139.41">
+      <path d="m116.25,27.63l-62.62,82.53c-1.19,1.81-3.71,2.16-5.34.72l-25.12-22.07" style="fill:none; stroke-linecap:round; stroke-miterlimit:10; stroke-width:9px;"/>
     </symbol>
   </defs>
 </svg>

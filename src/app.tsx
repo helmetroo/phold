@@ -12,6 +12,8 @@ import type ChosenFile from '@/types/chosen-file';
 import RenderCanvas from './render-canvas';
 import SettingsBar from '@/ui/settings-bar';
 import ShutterBar from '@/ui/shutter-bar';
+import ConfirmActionBar from '@/ui/confirm-action-bar';
+import ShutterFlash from '@/ui/shutter-flash';
 import ErrorOverlay from '@/ui/error-overlay';
 
 type State = {
@@ -19,6 +21,8 @@ type State = {
         showing: boolean,
         message: string[] | string
     },
+
+    confirmingAction: boolean,
 }
 export default class App extends Component<{}, State> {
     private sourceManager = new SourceManager({
@@ -28,6 +32,7 @@ export default class App extends Component<{}, State> {
     private faceWatcher = new FaceWatcher(this.onDetectFaces.bind(this));
     private renderer = new Renderer(this.onRequestResize.bind(this));
     private renderCanvas = createRef<RenderCanvas>();
+    private shutterFlash = createRef<ShutterFlash>();
 
     private availableFeatures = {
         renderer: false,
@@ -36,10 +41,11 @@ export default class App extends Component<{}, State> {
     };
 
     state = {
+        confirmingAction: false,
         error: {
             showing: false,
             message: [],
-        }
+        },
     };
 
     private get showingError() {
@@ -55,6 +61,10 @@ export default class App extends Component<{}, State> {
             await this.sourceManager.resumeCurrent();
 
         this.startAll();
+
+        // Needed to ensure container resized and rendered (latter necessary?) on iPad
+        this.renderCanvas.current?.resizeToContainer();
+        this.renderer.forceRender();
     }
 
     componentWillUnmount() {
@@ -163,21 +173,32 @@ export default class App extends Component<{}, State> {
         this.setFoldsFromFaces(imageFaces);
 
         this.renderer.forceRender();
+
+        this.setState(prevState => ({
+            confirmingAction: true,
+            error: {
+                ...prevState.error
+            }
+        }));
     }
 
-    private handleShutter() {
+    private async handleShutter() {
         const renderCanvas = this.renderCanvas.current;
         if (!renderCanvas)
             return;
 
+        this.faceWatcher.stop();
         this.sourceManager.pauseCurrent();
 
         renderCanvas.stopWatchingResizes();
 
-        // TODO might be cool to show a flash and still freeze the image to show the user what they got
+        // Anims
+        this.shutterFlash.current?.animate();
+
+        // Temporarily resize canvas to match original image size, then download
         const srcDims = this.sourceManager.current.getDimensions();
         renderCanvas.resizeToDimensions(srcDims);
-        App.downloadCanvasImage(this.renderer, renderCanvas);
+        await App.downloadCanvasImage(this.renderer, renderCanvas);
 
         // After resizing we have to render again or the canvas goes blank
         renderCanvas.resizeToContainer();
@@ -186,26 +207,31 @@ export default class App extends Component<{}, State> {
         renderCanvas.watchResizes();
 
         this.sourceManager.resumeCurrent();
+        this.faceWatcher.start();
     }
 
-    private static downloadCanvasImage(renderer: Renderer, renderCanvas: RenderCanvas) {
+    private static async downloadCanvasImage(renderer: Renderer, renderCanvas: RenderCanvas) {
         // Must trigger a re-render now or we would download a blank image
         renderer.forceRender();
-        const imageData = renderCanvas.getAsImage();
-        if (!imageData)
+        const imageUrl = await renderCanvas.getBlobUrl();
+        if (!imageUrl)
             return;
 
         // Forcing download requires us to create a proxy anchor tag
         // and clicking it to trigger the download
         const anchorElem = document.createElement('a');
-        anchorElem.setAttribute('href', imageData);
+        anchorElem.setAttribute('href', imageUrl);
 
         const fileName = `phold-image-${new Date().getTime()}.jpg`;
         anchorElem.setAttribute('download', fileName);
 
+        // Force download
         document.body.appendChild(anchorElem);
         anchorElem.click();
         document.body.removeChild(anchorElem);
+
+        // Clean up
+        URL.revokeObjectURL(imageUrl);
     }
 
     private onError(err: Error) {
@@ -225,21 +251,24 @@ export default class App extends Component<{}, State> {
             err instanceof AppError
                 ? err.message
                 : [`Unknown error.`, err.message]
-        this.setState({
+
+        this.setState(prevState => ({
+            confirmingAction: prevState.confirmingAction,
             error: {
                 showing: true,
                 message: errMessage
             }
-        });
+        }));
     }
 
     private hideError() {
-        this.setState({
+        this.setState(prevState => ({
+            confirmingAction: prevState.confirmingAction,
             error: {
                 showing: false,
                 message: ''
             }
-        });
+        }));
     }
 
     private onRequestResize() {
@@ -257,6 +286,47 @@ export default class App extends Component<{}, State> {
         this.renderer.forceRender();
     }
 
+    private async acceptUploadedPhoto() {
+        const renderCanvas = this.renderCanvas.current;
+        if (!renderCanvas)
+            return;
+
+        renderCanvas.stopWatchingResizes();
+
+        // Temporarily resize canvas to match original image size, then download
+        const srcDims = this.sourceManager.current.getDimensions();
+        renderCanvas.resizeToDimensions(srcDims);
+        await App.downloadCanvasImage(this.renderer, renderCanvas);
+
+        // After resizing we have to render again or the canvas goes blank
+        renderCanvas.resizeToContainer();
+        this.renderer.forceRender();
+
+        renderCanvas.watchResizes();
+
+        await this.switchToCamera();
+    }
+
+    private async rejectUploadedPhoto() {
+        await this.switchToCamera();
+    }
+
+    private async switchToCamera() {
+        this.sourceManager.switchToCamera();
+        await this.sourceManager.resumeCurrent();
+
+        // Force render necessary either here or before we do the resize canvas to ctr
+        this.startAll();
+        this.renderer.forceRender();
+
+        this.setState(prevState => ({
+            confirmingAction: false,
+            error: {
+                ...prevState.error
+            }
+        }));
+    }
+
     render() {
         return (
             <>
@@ -265,10 +335,18 @@ export default class App extends Component<{}, State> {
                     message={this.state.error.message}
                     onClose={this.hideError.bind(this)}
                 />
+                <ShutterFlash
+                    ref={this.shutterFlash}
+                />
                 <SettingsBar
                 />
                 <RenderCanvas
                     ref={this.renderCanvas}
+                />
+                <ConfirmActionBar
+                    visible={this.state.confirmingAction}
+                    yesCallback={this.acceptUploadedPhoto.bind(this)}
+                    noCallback={this.rejectUploadedPhoto.bind(this)}
                 />
                 <ShutterBar
                     pickImageCallback={this.handleChosenImage.bind(this)}

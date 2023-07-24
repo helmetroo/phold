@@ -38,7 +38,7 @@ export default class SourceManager {
             this.currentSource = new BlankSource();
             await this.loadCurrent();
 
-            throw new Error('Camera unavailable.');
+            throw err;
         }
     }
 
@@ -71,6 +71,15 @@ export default class SourceManager {
         await imageSource.load();
         this.currentSource = imageSource;
         this.currentSourceType = 'image';
+    }
+
+    switchToCamera() {
+        if (this.currentSourceType === 'camera')
+            return;
+
+        this.destroyCurrent();
+        this.currentSource = this.camera;
+        this.currentSourceType = 'camera';
     }
 
     get current() {
