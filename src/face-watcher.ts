@@ -51,7 +51,6 @@ export default class FaceWatcher {
     async load() {
         await Promise.all([
             faceApiNets.tinyFaceDetector.loadFromUri(MODEL_DIR),
-            faceApiNets.faceRecognitionNet.loadFromUri(MODEL_DIR),
             faceApiNets.faceLandmark68TinyNet.loadFromUri(MODEL_DIR),
         ]);
 
