@@ -14,6 +14,7 @@ export default function Shutter({ pressCallback }: ShutterProps) {
 
     return (
         <button
+            aria-label='Take photo'
             class='w-full h-full rounded-[50%] outline-none bg-transparent justify-center items-center'
             onClick={onPress}
             onAnimationEnd={() => setAnimating(false)}

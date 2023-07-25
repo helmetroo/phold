@@ -33,6 +33,7 @@ export default function ErrorOverlay({ visible, message, onClose }: Props) {
                 </section>
             </section>
             <CloseButton
+                label='Dismiss'
                 classes='relative'
                 callback={onClose} />
         </section>
