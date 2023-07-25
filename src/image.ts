@@ -2,6 +2,7 @@ import Source from '@/types/source';
 import ChosenFile from '@/types/chosen-file';
 
 export default class ImageSource extends Source {
+    protected hasLoaded = false;
     private image = new Image();
 
     constructor(chosenFile: ChosenFile) {
@@ -11,8 +12,12 @@ export default class ImageSource extends Source {
     }
 
     async load() {
-        await new Promise((resolve, reject) => {
-            this.image.onload = resolve;
+        await new Promise<void>((resolve, reject) => {
+            this.image.onload = () => {
+                this.hasLoaded = true;
+                resolve();
+            };
+
             this.image.onerror = reject;
         });
     }
@@ -31,6 +36,7 @@ export default class ImageSource extends Source {
     destroy() {
         URL.revokeObjectURL(this.image.src);
         this.image.remove();
+        this.hasLoaded = false;
     }
 
     pause() { }

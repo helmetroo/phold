@@ -17,7 +17,7 @@ export type FaceDetectCallback = (faces: DetectedFaces) => void;
 
 export default class FaceWatcher {
     private loaded = false;
-    private currentSource: Source = new BlankSource();
+    private currentSource: Source;
     private timeoutId: NodeJS.Timeout | null = null;
 
     private options: TinyFaceDetectorOptions
@@ -28,7 +28,10 @@ export default class FaceWatcher {
 
     constructor(
         private onDetect: FaceDetectCallback
-    ) { }
+    ) {
+        this.currentSource = new BlankSource();
+        this.currentSource.load();
+    }
 
     set source(newSource: Source) {
         this.currentSource = newSource;
@@ -66,9 +69,14 @@ export default class FaceWatcher {
 
     async detectFaces() {
         const rawImageSrc = this.currentSource.getRaw();
-        const faces = await detectAllFaces(rawImageSrc, this.options)
-            .withFaceLandmarks(true);
+        try {
+            const faces = await detectAllFaces(rawImageSrc, this.options)
+                .withFaceLandmarks(true);
 
-        return faces;
+            return faces;
+        } catch (err) {
+            console.warn(err);
+            return [];
+        }
     }
 }

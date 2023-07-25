@@ -10,6 +10,7 @@ export type Status =
 export default class CameraSource extends Source {
     static readonly IDENTIFIER = 'camera-video-stream';
 
+    protected hasLoaded = false;
     private facingMode: ConstrainDOMString = 'default';
     private cameraStream: MediaStream | null = null;
     private cameraVideo: HTMLVideoElement;
@@ -55,6 +56,7 @@ export default class CameraSource extends Source {
 
     async load() {
         await this.loadCamera(this.facingMode);
+        this.hasLoaded = true;
     }
 
     private async loadCamera(facingMode: ConstrainDOMString) {
@@ -187,5 +189,6 @@ export default class CameraSource extends Source {
     destroy() {
         this.removeCameraStreamAndTracks();
         this.cameraVideo.remove();
+        this.hasLoaded = false;
     }
 }

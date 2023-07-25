@@ -15,6 +15,11 @@ type RawSource =
 export default abstract class Source {
     static readonly IDENTIFIER: string;
 
+    protected hasLoaded = false;
+    get loaded() {
+        return this.hasLoaded;
+    }
+
     abstract getRaw(): RawSource;
     abstract getDimensions(): Dimensions;
 

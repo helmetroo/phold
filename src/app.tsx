@@ -52,32 +52,42 @@ export default class App extends Component<{}, State> {
         return this.state.error.showing;
     }
 
-    async componentDidMount() {
-        await this.init();
+    componentDidMount() {
+        this.initRenderer();
 
-        // If camera ready must wait for it to be playing
-        // or else we will get errors in texSubImage2D(...)
-        if (this.availableFeatures.camera)
-            await this.sourceManager.resumeCurrent();
+        this.initCamera().then(() => {
+            this.sourceManager.resumeCurrent();
+        }).finally(() => {
+            // Must wait for camera to load (or not) and play
+            // or else we get no image err calling texSubImage2D(...)
+            this.syncSource();
 
-        this.startAll();
+            // Need to ensure container resized and render step happens (latter necessary?) on iOS
+            this.renderer.start();
+            this.renderCanvas.current?.resizeToContainer();
+            this.renderer.forceRender();
 
-        // Needed to ensure container resized and rendered (latter necessary?) on iPad
-        this.renderCanvas.current?.resizeToContainer();
-        this.renderer.forceRender();
+            this.hideLoader();
+        });
+
+        this.initFaceWatcher().then(() => {
+            this.faceWatcher.start();
+        });
     }
 
     componentWillUnmount() {
         this.stopAll();
     }
 
-    async init() {
-        this.initRenderer();
+    private hideLoader() {
+        const loader = document.getElementById('loader');
+        if (!loader)
+            return;
 
-        await Promise.all([
-            this.initCamera(),
-            this.initFaceWatcher()
-        ]);
+        loader.classList.add('animate-fade-out');
+        loader.onanimationend = () => {
+            loader.style.display = 'none';
+        }
     }
 
     stopAll() {
@@ -182,7 +192,7 @@ export default class App extends Component<{}, State> {
         }));
     }
 
-    private async handleShutter() {
+    private handleShutter() {
         const renderCanvas = this.renderCanvas.current;
         if (!renderCanvas)
             return;
@@ -198,14 +208,15 @@ export default class App extends Component<{}, State> {
         // Temporarily resize canvas to match original image size, then download
         const srcDims = this.sourceManager.current.getDimensions();
         renderCanvas.resizeToDimensions(srcDims);
-        await App.downloadCanvasImage(this.renderer, renderCanvas);
+        App.downloadCanvasImage(this.renderer, renderCanvas).then(() => {
+            // After resizing we have to render again or the canvas goes blank
+            renderCanvas.resizeToContainer();
+            this.renderer.forceRender();
 
-        // After resizing we have to render again or the canvas goes blank
-        renderCanvas.resizeToContainer();
-        this.renderer.forceRender();
+            renderCanvas.watchResizes();
+        });
 
-        renderCanvas.watchResizes();
-
+        // Keep playing video while the canvas image download may be happening
         this.sourceManager.resumeCurrent();
         this.faceWatcher.start();
     }

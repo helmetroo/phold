@@ -4,9 +4,9 @@ import Dimensions from '@/types/dimensions';
 export default class BlankSource extends Source {
     static readonly IDENTIFIER = 'blank-image';
 
+    protected hasLoaded = false;
     private image = new Image();
     private renderer: HTMLCanvasElement;
-    private rendered = false;
     private dimensions: Dimensions = {
         width: 1,
         height: 1
@@ -16,15 +16,13 @@ export default class BlankSource extends Source {
         super();
 
         // Prevent dupes from being created by piggybacking off an existing element
-        /*
-        let blankRenderer =
+        let existingRenderer =
             document.getElementById(BlankSource.IDENTIFIER) as HTMLCanvasElement;
 
-        if (blankRenderer) {
-            this.renderer = blankRenderer;
+        if (existingRenderer) {
+            this.renderer = existingRenderer;
             return;
         }
-        */
 
         this.renderer = document.createElement('canvas');
         this.renderer.id = BlankSource.IDENTIFIER;
@@ -33,7 +31,7 @@ export default class BlankSource extends Source {
     }
 
     async load() {
-        if (this.rendered)
+        if (this.hasLoaded)
             return;
 
         const canvasCtx = this.renderer.getContext('2d');
@@ -45,7 +43,7 @@ export default class BlankSource extends Source {
         this.image = new Image(this.dimensions.width, this.dimensions.height);
         this.image.src = this.renderer.toDataURL();
 
-        this.rendered = true;
+        this.hasLoaded = true;
     }
 
     getRaw() {
@@ -61,7 +59,7 @@ export default class BlankSource extends Source {
         this.image.remove();
         this.renderer.remove();
 
-        this.rendered = false;
+        this.hasLoaded = false;
     }
 
     pause() { }

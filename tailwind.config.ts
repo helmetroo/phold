@@ -6,6 +6,16 @@ export default {
     theme: {
         extend: {
             keyframes: {
+                'fade-out': {
+                    '0%': {
+                        opacity: 1
+                    },
+
+                    '100%': {
+                        opacity: 0
+                    }
+                },
+
                 'shutter-flash': {
                     '0%, 100%': {
                         background: 'rgba(255,255,255,0)'
@@ -42,6 +52,7 @@ export default {
             },
 
             animation: {
+                'fade-out': 'fade-out 0.25s ease-out',
                 'shutter-flash': 'shutter-flash 0.25s ease-in-out',
                 'shutter-press': 'shutter-press 0.15s ease-in-out',
                 'button-press': 'button-press 0.15s ease-in-out'
