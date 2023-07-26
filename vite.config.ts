@@ -86,9 +86,11 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
     const isDev = env.NODE_ENV === 'development';
     if (isDev) {
-        config.server.https = {
-            key: readFileSync('./.cert/key.pem'),
-            cert: readFileSync('./.cert/cert.pem'),
+        config.server = {
+            https: {
+                key: readFileSync('./.cert/key.pem'),
+                cert: readFileSync('./.cert/cert.pem'),
+            }
         }
     }
 
