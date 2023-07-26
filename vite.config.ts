@@ -33,6 +33,21 @@ export default defineConfig(({ mode }) => {
                     'mask-icon.svg',
                 ],
 
+                registerType: 'autoUpdate',
+
+                workbox: {
+                    globPatterns: [
+                        // All main assets pertinent to the app
+                        '**/*.{js,css,html,ico,png,svg}',
+
+                        // Neural network weights and their manifests used by face-api.js
+                        'weights/tiny_face_detector_model-shard1',
+                        'weights/tiny_face_detector_model-weights_manifest.json',
+                        'weights/face_landmark_68_tiny_model-shard1',
+                        'weights/face_landmark_68_tiny_model-weights_manifest.json',
+                    ]
+                },
+
                 manifest: {
                     name: 'PHOLD',
                     short_name: 'PHOLD',
