@@ -75,6 +75,7 @@ export default defineConfig(({ mode }) => {
                     }],
                     start_url: '/.',
                     display: 'fullscreen',
+                    orientation: 'natural',
                 }
             }),
             preact(),
