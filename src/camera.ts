@@ -55,6 +55,7 @@ export default class CameraSource extends Source {
     }
 
     async load() {
+        this.hasLoaded = false;
         await this.loadCamera(this.facingMode);
         this.hasLoaded = true;
     }
@@ -87,8 +88,10 @@ export default class CameraSource extends Source {
             await CameraSource.waitUntilLoaded(this.cameraVideo);
 
             // Must wait for loaded evt to fire before we can get needed metadata
-            this.cameraVideoDimensions =
-                CameraSource.getDimensions(this.cameraStream);
+            this.cameraVideoDimensions = {
+                width: this.cameraVideo.videoWidth,
+                height: this.cameraVideo.videoHeight,
+            }
 
             this.status = 'active';
         } catch (err: unknown) {
@@ -167,18 +170,6 @@ export default class CameraSource extends Source {
         await this.cameraVideo.play();
     }
 
-    private static getDimensions(cameraStream: MediaStream) {
-        const cameraVideoTrack = cameraStream.getVideoTracks()[0];
-        const cameraVideoTrackSettings = cameraVideoTrack.getSettings();
-
-        const dimensions: Dimensions = {
-            width: cameraVideoTrackSettings.width!,
-            height: cameraVideoTrackSettings.height!
-        }
-
-        return dimensions;
-    }
-
     getRaw() {
         return this.cameraVideo;
     }
@@ -190,6 +181,10 @@ export default class CameraSource extends Source {
     private removeCameraStreamAndTracks() {
         if (!this.cameraStream)
             return;
+
+        this.cameraVideoDimensions.width = 0;
+        this.cameraVideoDimensions.height = 0;
+        this.status = 'inactive';
 
         const cameraVideoTracks = this.cameraStream.getVideoTracks();
         for (const track of cameraVideoTracks) {
