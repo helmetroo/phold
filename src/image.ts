@@ -1,9 +1,14 @@
+import Dimensions from '@/types/dimensions';
 import Source from '@/types/source';
 import ChosenFile from '@/types/chosen-file';
 
 export default class ImageSource extends Source {
     protected hasLoaded = false;
     private image = new Image();
+    private imageDimensions: Dimensions = {
+        width: 0,
+        height: 0
+    };
 
     constructor(chosenFile: ChosenFile) {
         super();
@@ -15,6 +20,9 @@ export default class ImageSource extends Source {
         await new Promise<void>((resolve, reject) => {
             this.image.onload = () => {
                 this.hasLoaded = true;
+                this.imageDimensions.width = this.image.width;
+                this.imageDimensions.height = this.image.height;
+
                 resolve();
             };
 
@@ -27,10 +35,7 @@ export default class ImageSource extends Source {
     }
 
     getDimensions() {
-        return {
-            width: this.image.width,
-            height: this.image.height,
-        };
+        return this.imageDimensions;
     }
 
     destroy() {
