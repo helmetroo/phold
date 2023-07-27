@@ -23,6 +23,7 @@ type State = {
     },
 
     confirmingAction: boolean,
+    orientationType: OrientationType | 'unknown',
 }
 export default class App extends Component<{}, State> {
     private sourceManager = new SourceManager({
@@ -46,6 +47,7 @@ export default class App extends Component<{}, State> {
             showing: false,
             message: [],
         },
+        orientationType: screen?.orientation.type ?? 'unknown'
     };
 
     private get showingError() {
@@ -73,6 +75,9 @@ export default class App extends Component<{}, State> {
         this.initFaceWatcher().then(() => {
             this.faceWatcher.start();
         });
+
+        this.updateOrientationType();
+        this.watchForOrientationChange();
     }
 
     componentWillUnmount() {
@@ -87,6 +92,42 @@ export default class App extends Component<{}, State> {
         loader.classList.add('animate-fade-out');
         loader.onanimationend = () => {
             loader.style.display = 'none';
+        }
+    }
+
+    private watchForOrientationChange() {
+        if (screen && screen.orientation) {
+            screen.orientation.addEventListener(
+                'change',
+                this.updateOrientationType.bind(this)
+            );
+        }
+    }
+
+    private updateOrientationType() {
+        this.setState(prevState => ({
+            orientationType: screen.orientation.type,
+            confirmingAction: prevState.confirmingAction,
+            error: {
+                ...prevState.error
+            }
+        }));
+
+        const [appContainer] = document.getElementsByTagName('main');
+        if (!appContainer)
+            return;
+        App.setFlexDirection(appContainer, screen.orientation.type);
+    }
+
+    private static setFlexDirection(
+        container: HTMLElement,
+        orientationType: OrientationType
+    ) {
+        container.style.flexDirection = '';
+        if (orientationType === 'landscape-primary') {
+            container.style.flexDirection = 'row';
+        } else if (orientationType === 'landscape-secondary') {
+            container.style.flexDirection = 'row-reverse';
         }
     }
 
@@ -186,6 +227,7 @@ export default class App extends Component<{}, State> {
 
         this.setState(prevState => ({
             confirmingAction: true,
+            orientationType: prevState.orientationType,
             error: {
                 ...prevState.error
             }
@@ -265,6 +307,7 @@ export default class App extends Component<{}, State> {
 
         this.setState(prevState => ({
             confirmingAction: prevState.confirmingAction,
+            orientationType: prevState.orientationType,
             error: {
                 showing: true,
                 message: errMessage
@@ -275,6 +318,7 @@ export default class App extends Component<{}, State> {
     private hideError() {
         this.setState(prevState => ({
             confirmingAction: prevState.confirmingAction,
+            orientationType: prevState.orientationType,
             error: {
                 showing: false,
                 message: ''
@@ -332,6 +376,7 @@ export default class App extends Component<{}, State> {
 
         this.setState(prevState => ({
             confirmingAction: false,
+            orientationType: prevState.orientationType,
             error: {
                 ...prevState.error
             }
@@ -358,10 +403,13 @@ export default class App extends Component<{}, State> {
                     visible={this.state.confirmingAction}
                     yesCallback={this.acceptUploadedPhoto.bind(this)}
                     noCallback={this.rejectUploadedPhoto.bind(this)}
+                    orientationType={this.state.orientationType}
                 />
                 <ShutterBar
+                    visible={!this.state.confirmingAction}
                     pickImageCallback={this.handleChosenImage.bind(this)}
                     shutterCallback={this.handleShutter.bind(this)}
+                    orientationType={this.state.orientationType}
                 />
             </>
         );
