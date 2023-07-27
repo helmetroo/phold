@@ -41,7 +41,7 @@ export default class FaceWatcher {
         if (!this.loaded)
             return;
 
-        setTimeout(this.watchFaces.bind(this), 0);
+        this.timeoutId = setTimeout(this.watchFaces.bind(this), 0);
     }
 
     stop() {
