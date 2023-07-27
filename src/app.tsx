@@ -26,6 +26,8 @@ type State = {
     orientationType: OrientationType | 'unknown',
 }
 export default class App extends Component<{}, State> {
+    private resizeObserver: ResizeObserver
+        = new ResizeObserver(this.updateAspectRatioStatus.bind(this));
     private sourceManager = new SourceManager({
         beforeCameraReloads: this.beforeCameraReloads.bind(this),
         onCameraReloaded: this.onCameraReloaded.bind(this)
@@ -76,8 +78,8 @@ export default class App extends Component<{}, State> {
             this.faceWatcher.start();
         });
 
-        this.updateOrientationType();
-        this.watchForOrientationChange();
+        this.updateAspectRatioStatus();
+        this.watchForWindowAspectRatioChange();
     }
 
     componentWillUnmount() {
@@ -95,18 +97,25 @@ export default class App extends Component<{}, State> {
         }
     }
 
-    private watchForOrientationChange() {
+    private watchForWindowAspectRatioChange() {
+        this.resizeObserver.observe(document.body);
+
         if (screen && screen.orientation) {
             screen.orientation.addEventListener(
                 'change',
-                this.updateOrientationType.bind(this)
+                this.updateAspectRatioStatus.bind(this)
+            );
+        } else {
+            window.addEventListener(
+                'orientationchange',
+                this.updateAspectRatioStatus.bind(this)
             );
         }
     }
 
-    private updateOrientationType() {
+    private updateAspectRatioStatus() {
         this.setState(prevState => ({
-            orientationType: screen.orientation.type,
+            orientationType: screen?.orientation.type ?? 'unknown',
             confirmingAction: prevState.confirmingAction,
             error: {
                 ...prevState.error
@@ -116,6 +125,7 @@ export default class App extends Component<{}, State> {
         const [appContainer] = document.getElementsByTagName('main');
         if (!appContainer)
             return;
+
         App.setFlexDirection(appContainer, screen.orientation.type);
     }
 
@@ -123,11 +133,13 @@ export default class App extends Component<{}, State> {
         container: HTMLElement,
         orientationType: OrientationType
     ) {
-        container.style.flexDirection = '';
-        if (orientationType === 'landscape-primary') {
+        const landscapeWindow = window.innerWidth > window.innerHeight;
+        if (orientationType === 'landscape-primary' && landscapeWindow) {
             container.style.flexDirection = 'row';
-        } else if (orientationType === 'landscape-secondary') {
+        } else if (orientationType === 'landscape-secondary' && landscapeWindow) {
             container.style.flexDirection = 'row-reverse';
+        } else {
+            container.style.flexDirection = '';
         }
     }
 
