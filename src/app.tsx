@@ -263,6 +263,26 @@ export default class App extends Component<{}, State> {
         this.faceWatcher.start();
     }
 
+    private async handleSwapCamera() {
+        const renderCanvas = this.renderCanvas.current;
+        if (!renderCanvas)
+            return;
+
+        this.sourceManager.pauseCurrent();
+        this.stopAll();
+
+        renderCanvas.stopWatchingResizes();
+
+        await this.sourceManager.swapCamera();
+        await this.sourceManager.resumeCurrent();
+
+        this.startAll();
+
+        renderCanvas.resizeToContainer();
+        this.renderer.forceRender();
+        renderCanvas.watchResizes();
+    }
+
     private static async downloadCanvasImage(renderer: Renderer, renderCanvas: RenderCanvas) {
         // Must trigger a re-render now or we would download a blank image
         renderer.forceRender();
@@ -409,6 +429,7 @@ export default class App extends Component<{}, State> {
                     visible={!this.state.confirmingAction}
                     pickImageCallback={this.handleChosenImage.bind(this)}
                     shutterCallback={this.handleShutter.bind(this)}
+                    swapCameraCallback={this.handleSwapCamera.bind(this)}
                     orientationType={this.state.orientationType}
                 />
             </>

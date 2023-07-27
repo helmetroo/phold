@@ -12,12 +12,14 @@ interface Props {
     orientationType: OrientationType,
     pickImageCallback: FileCallback,
     shutterCallback: Callback,
+    swapCameraCallback: Callback,
 }
 export default function ShutterBar(props: Props) {
     const {
         visible,
         pickImageCallback,
-        shutterCallback
+        shutterCallback,
+        swapCameraCallback,
     } = props;
 
     const elem = useRef<HTMLElement>(null);
@@ -66,7 +68,7 @@ export default function ShutterBar(props: Props) {
                     <Shutter pressCallback={shutterCallback} />
                 </li>
                 <li class='w-16 h-16'>
-                    <SwapCameraButton />
+                    <SwapCameraButton pressCallback={swapCameraCallback} />
                 </li>
             </menu>
         </section>

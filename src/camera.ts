@@ -132,13 +132,25 @@ export default class CameraSource extends Source {
         }
     }
 
-    async changeFacingMode(newFacingMode: ConstrainDOMString) {
+    async swapFacingMode() {
         try {
-            await this.loadCamera(newFacingMode);
-            this.facingMode = newFacingMode;
+            this.facingMode =
+                CameraSource.getAlternatingFacingMode(this.facingMode);
+            await this.load();
         } catch (err) {
+            // Go back to original facing mode
+            this.facingMode =
+                CameraSource.getAlternatingFacingMode(this.facingMode);
+            await this.load();
+
             this.throwCameraError(err);
         }
+    }
+
+    private static getAlternatingFacingMode(facingMode: ConstrainDOMString) {
+        return (facingMode === 'default')
+            ? 'environment'
+            : 'default';
     }
 
     private static async waitUntilLoaded(cameraVideo: HTMLVideoElement) {

@@ -36,6 +36,16 @@ export default {
                     }
                 },
 
+                'spin-once': {
+                    '0%': {
+                        transform: 'rotate(0deg)'
+                    },
+
+                    '100%': {
+                        transform: 'rotate(360deg)'
+                    }
+                },
+
                 'button-press': {
                     '0%, 100%': {
                         transform: 'scale(1)'
@@ -55,6 +65,7 @@ export default {
                 'fade-out': 'fade-out 0.25s ease-out',
                 'shutter-flash': 'shutter-flash 0.25s ease-in-out',
                 'shutter-press': 'shutter-press 0.15s ease-in-out',
+                'spin-once': 'spin-once 0.5s ease-out',
                 'button-press': 'button-press 0.15s ease-in-out'
             }
         },

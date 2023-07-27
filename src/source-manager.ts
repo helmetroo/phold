@@ -82,6 +82,13 @@ export default class SourceManager {
         this.currentSourceType = 'camera';
     }
 
+    async swapCamera() {
+        if (this.currentSourceType !== 'camera')
+            return;
+
+        await this.camera.swapFacingMode();
+    }
+
     get current() {
         return this.currentSource;
     }
