@@ -70,10 +70,6 @@ export default class FaceWatcher {
     async detectFaces() {
         const rawImageSrc = this.currentSource.getRaw();
         try {
-            // face-api throws an error for 0x0 images so we need to handle it
-            if (!rawImageSrc.width && !rawImageSrc.height)
-                return [];
-
             const faces = await detectAllFaces(rawImageSrc, this.options)
                 .withFaceLandmarks(true);
 
