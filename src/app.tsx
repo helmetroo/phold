@@ -114,8 +114,9 @@ export default class App extends Component<{}, State> {
     }
 
     private updateAspectRatioStatus() {
+        const newOrientationType = App.getOrientationType();
         this.setState(prevState => ({
-            orientationType: screen?.orientation.type ?? 'unknown',
+            orientationType: newOrientationType,
             confirmingAction: prevState.confirmingAction,
             error: {
                 ...prevState.error
@@ -126,20 +127,31 @@ export default class App extends Component<{}, State> {
         if (!appContainer)
             return;
 
-        App.setFlexDirection(appContainer, screen.orientation.type);
+        App.setFlexDirection(appContainer, newOrientationType);
+    }
+
+    private static getOrientationType(): OrientationType {
+        const windowIsLandscape = window.matchMedia('(orientation: landscape)').matches;
+        const orientationType = screen?.orientation.type ?? 'unknown';
+
+        const orientationTypeSplit = orientationType.split('-');
+        const orientationAngleName =
+            (orientationTypeSplit[1] as 'primary' | 'secondary') ?? 'primary';
+
+        return windowIsLandscape
+            ? `landscape-${orientationAngleName}`
+            : `portrait-${orientationAngleName}`;
     }
 
     private static setFlexDirection(
         container: HTMLElement,
         orientationType: OrientationType
     ) {
-        const landscapeWindow = window.innerWidth > window.innerHeight;
-        if (orientationType === 'landscape-primary' && landscapeWindow) {
+        container.style.flexDirection = '';
+        if (orientationType === 'landscape-primary') {
             container.style.flexDirection = 'row';
-        } else if (orientationType === 'landscape-secondary' && landscapeWindow) {
+        } else if (orientationType === 'landscape-secondary') {
             container.style.flexDirection = 'row-reverse';
-        } else {
-            container.style.flexDirection = '';
         }
     }
 
