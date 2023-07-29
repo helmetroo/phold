@@ -63,9 +63,6 @@ export default class SourceManager {
     }
 
     async setAndLoadFromImage(chosenFile: ChosenFile) {
-        if (this.currentSourceType === 'image')
-            this.destroyCurrent();
-
         const imageSource = new ImageSource(chosenFile);
 
         await imageSource.load();
@@ -74,23 +71,21 @@ export default class SourceManager {
     }
 
     switchToCamera() {
-        if (this.currentSourceType === 'camera')
-            return;
-
         this.destroyCurrent();
         this.currentSource = this.camera;
         this.currentSourceType = 'camera';
     }
 
     async swapCamera() {
-        if (this.currentSourceType !== 'camera')
-            return;
-
         await this.camera.swapFacingMode();
     }
 
     get current() {
         return this.currentSource;
+    }
+
+    get currentType() {
+        return this.currentSourceType;
     }
 
     async loadCurrent() {

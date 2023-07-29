@@ -80,6 +80,7 @@ export default class App extends Component<{}, State> {
 
         this.updateAspectRatioStatus();
         this.watchForWindowAspectRatioChange();
+        this.watchForAppFocusAndBlur();
     }
 
     componentWillUnmount() {
@@ -153,6 +154,34 @@ export default class App extends Component<{}, State> {
         } else if (orientationType === 'landscape-secondary') {
             container.style.flexDirection = 'row-reverse';
         }
+    }
+
+    private watchForAppFocusAndBlur() {
+        window.addEventListener(
+            'focus',
+            this.onAppResume.bind(this),
+        );
+
+        window.addEventListener(
+            'blur',
+            this.onAppBlur.bind(this),
+        );
+    }
+
+    private async onAppResume() {
+        if (this.sourceManager.currentType !== 'camera')
+            return;
+
+        await this.sourceManager.resumeCurrent();
+        this.startAll();
+    }
+
+    private onAppBlur() {
+        if (this.sourceManager.currentType !== 'camera')
+            return;
+
+        this.sourceManager.pauseCurrent();
+        this.stopAll();
     }
 
     stopAll() {
@@ -239,6 +268,8 @@ export default class App extends Component<{}, State> {
 
         this.stopAll();
 
+        if (this.sourceManager.currentType === 'image')
+            this.sourceManager.destroyCurrent();
         await this.sourceManager.setAndLoadFromImage(chosenFile);
         this.syncSource();
 
