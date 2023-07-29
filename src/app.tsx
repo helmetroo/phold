@@ -166,6 +166,13 @@ export default class App extends Component<{}, State> {
             'blur',
             this.onAppBlur.bind(this),
         );
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden)
+                this.onAppBlur();
+            else
+                this.onAppResume();
+        });
     }
 
     private async onAppResume() {
