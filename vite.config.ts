@@ -6,6 +6,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import glsl from 'vite-plugin-glsl';
 import { VitePWA } from 'vite-plugin-pwa';
 import preact from '@preact/preset-vite';
+import Unfonts from 'unplugin-fonts/vite';
 
 export default defineConfig(({ mode }) => {
     const config: UserConfigExport = {
@@ -22,6 +23,11 @@ export default defineConfig(({ mode }) => {
         plugins: [
             tsconfigPaths(),
             glsl(),
+            Unfonts({
+                google: {
+                    families: ['Victor Mono']
+                }
+            }),
             VitePWA({
                 devOptions: {
                     enabled: true,

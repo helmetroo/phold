@@ -15,3 +15,8 @@
 .no-highlight-btn {
     outline: none !important;
 }
+
+body {
+    font-family: 'Victor Mono', ui-monospace, monospace;
+    font-smoothing: antialiased;
+}
