@@ -109,9 +109,11 @@ export default class CameraSource extends Source {
             if (cameraAlreadyInUse) {
                 const alreadyInUseErr =
                     new AppError(
-                        'CamInUseErr',
-                        `Camera is unavailable for use. It's probably being used by another app. To use it here, disable it in other apps using it and try reloading.`
-                    );
+                        'CamInUseErr', [
+                        `Camera is unavailable for use.`,
+                        `It's probably being used by another app.`,
+                        `To use it here, close other apps using it, then try reloading.`
+                    ]);
                 throw alreadyInUseErr;
             }
 
@@ -120,17 +122,20 @@ export default class CameraSource extends Source {
             if (cameraRejected) {
                 const rejectedErr =
                     new AppError(
-                        'CamDisallowedErr',
-                        `Camera is unavailable for use. If you want to re-enable it later, you can refresh or also allow the camera for this page in your browser settings.`
-                    );
+                        'CamDisallowedErr', [
+                        `Camera is unavailable for use.`,
+                        `If you'd like to re-enable it later, you can refresh this app and allow it.`,
+                        `You can also manually allow the camera for this app in your browser settings.`
+                    ]);
                 throw rejectedErr;
             }
 
             const unknownErr =
                 new AppError(
-                    'CamUnknownErr',
-                    `Camera is unavailable. ${err.message}`
-                );
+                    'CamUnknownErr', [
+                    `Camera is unavailable for use.`,
+                    err.message
+                ]);
             throw unknownErr;
         }
     }
