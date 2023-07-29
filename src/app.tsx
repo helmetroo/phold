@@ -377,7 +377,7 @@ export default class App extends Component<{}, State> {
     private showError(err: Error) {
         const errMessage =
             err instanceof AppError
-                ? err.message
+                ? err.messageLines
                 : [`Unknown error.`, err.message]
 
         this.setState(prevState => ({
