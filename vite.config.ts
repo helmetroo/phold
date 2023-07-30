@@ -90,7 +90,8 @@ export default defineConfig(({ mode }) => {
 
     // Read mkcert installed locally
     const env = loadEnv(mode, process.cwd(), '');
-    const isDev = env.NODE_ENV === 'development';
+    const isDev = env.NODE_ENV === 'development'
+        || env.npm_lifecycle_event === 'preview';
     if (isDev) {
         config.server = {
             https: {
