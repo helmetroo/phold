@@ -16,6 +16,8 @@ import ConfirmActionBar from '@/ui/confirm-action-bar';
 import ShutterFlash from '@/ui/shutter-flash';
 import ErrorOverlay from '@/ui/error-overlay';
 
+import isOniOS from '@/utils/is-on-ios';
+
 type State = {
     error: {
         showing: boolean,
@@ -157,16 +159,6 @@ export default class App extends Component<{}, State> {
     }
 
     private watchForAppFocusAndBlur() {
-        window.addEventListener(
-            'focus',
-            this.onAppResume.bind(this),
-        );
-
-        window.addEventListener(
-            'blur',
-            this.onAppBlur.bind(this),
-        );
-
         document.addEventListener('visibilitychange', () => {
             if (document.hidden)
                 this.onAppBlur();
@@ -175,12 +167,17 @@ export default class App extends Component<{}, State> {
         });
     }
 
-    private async onAppResume() {
+    private onAppResume() {
         if (this.sourceManager.currentType !== 'camera')
             return;
 
-        await this.sourceManager.resumeCurrent();
-        this.startAll();
+        // Camera freezes (particularly in PWA version) when resuming
+        // so we need to refresh the camera :(
+        const oniOS = isOniOS();
+        if (oniOS)
+            this.sourceManager.refreshCamera();
+        else
+            this.resumeCamera();
     }
 
     private onAppBlur() {
@@ -417,8 +414,13 @@ export default class App extends Component<{}, State> {
     }
 
     private async onCameraReloaded() {
+        await this.resumeCamera();
+    }
+
+    private async resumeCamera() {
         if (this.availableFeatures.camera)
             await this.sourceManager.resumeCurrent();
+
         this.startAll();
         this.renderer.forceRender();
     }

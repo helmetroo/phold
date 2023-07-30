@@ -56,7 +56,7 @@ export default class SourceManager {
         }
     }
 
-    private async refreshCamera() {
+    async refreshCamera() {
         this.beforeCameraReloads();
         await this.loadCurrent();
         this.onCameraReloaded();
