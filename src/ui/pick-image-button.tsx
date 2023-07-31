@@ -37,7 +37,7 @@ export default function PickImageButton({ chooseCallback }: Props) {
     return (
         <button
             aria-label='Choose image'
-            class={`${animating && 'animate-button-press'} no-highlight-btn w-full h-full p-4 flex justify-center items-center rounded-[50%] bg-neutral-600 cursor-pointer transition ease-out duration-10 origin-center hover:scale-[1.1] hover:bg-neutral-900`}
+            class={`${animating ? 'animate-button-press' : ''} no-highlight-btn w-full h-full p-4 flex justify-center items-center rounded-[50%] bg-neutral-600 cursor-pointer transition ease-out duration-10 origin-center hover:scale-[1.1] hover:bg-neutral-900`}
             onClick={onPress}
             onAnimationEnd={() => setAnimating(false)}
         >
