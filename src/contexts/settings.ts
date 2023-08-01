@@ -1,8 +1,11 @@
 import { createContext } from 'preact';
 import { signal, computed } from '@preact/signals';
+import type { Signal } from '@preact/signals';
 
 import FoldsSettings from '@/types/folds-settings';
 //import AppSettings from '@/types/app-settings';
+
+import getOrientationType from '@/utils/get-orientation-type';
 
 const DEFAULT_FOLDS_SETTINGS: FoldsSettings = {
     pX: 3,
@@ -40,18 +43,47 @@ function createDefaultSettings() {
 
         app: {
 
-        }
+        },
     };
 }
 
+function watchForWindowAspectRatioChange(signal: Signal<OrientationType>) {
+    function updateOrientationType() {
+        signal.value = getOrientationType();
+    }
+
+    const resizeObserver = new ResizeObserver(updateOrientationType);
+    resizeObserver.observe(document.body);
+
+    if (screen && screen.orientation) {
+        screen.orientation.addEventListener(
+            'change',
+            updateOrientationType
+        );
+    } else {
+        window.addEventListener(
+            'orientationchange',
+            updateOrientationType
+        );
+    }
+}
+
 const SettingsCtx = createContext({
-    settings: createDefaultSettings()
+    settings: createDefaultSettings(),
+    orientationType: signal(getOrientationType())
 });
 
 function createSettingsState() {
     // TODO load from IndexedDB here?
     const settings = createDefaultSettings();
-    return { settings };
+
+    const orientationType = signal(getOrientationType());
+    watchForWindowAspectRatioChange(orientationType);
+
+    return {
+        settings,
+        orientationType,
+    };
 }
 
 export default SettingsCtx;

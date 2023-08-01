@@ -1,4 +1,7 @@
-import { useRef, useEffect } from 'preact/hooks';
+import { useRef, useEffect, useContext } from 'preact/hooks';
+import { useSignalEffect } from '@preact/signals';
+
+import SettingsCtx from '@/contexts/settings';
 
 import YesButton from './check-button';
 import NoButton from './x-button';
@@ -7,37 +10,39 @@ import type Callback from '@/types/callback';
 
 interface Props {
     visible: boolean,
-    orientationType: OrientationType,
     yesCallback: Callback,
     noCallback: Callback,
 }
 export default function ConfirmActionBar(props: Props) {
     const {
-        visible,
         yesCallback,
         noCallback
     } = props;
 
-    const elem = useRef<HTMLElement>(null);
+    const elemRef = useRef<HTMLElement>(null);
+
+    const {
+        orientationType
+    } = useContext(SettingsCtx);
 
     // Watch for req'd style updates when orientation and visibility status changes
     useEffect(() => {
-        if (!elem.current)
+        const newOrientationType = orientationType.peek();
+        const newVisible = props.visible;
+        setStyle(newOrientationType, newVisible);
+    }, [props.visible]);
+
+    useSignalEffect(() => {
+        const newOrientationType = orientationType.value;
+        const newVisible = props.visible;
+        setStyle(newOrientationType, newVisible);
+    });
+
+    function setStyle(orientationType: OrientationType, visible: boolean) {
+        const elem = elemRef.current;
+        if (!elem)
             return;
 
-        setStyleFromOrientationType(
-            elem.current,
-            props.orientationType
-        );
-    }, [
-        props.visible,
-        props.orientationType
-    ]);
-
-    function setStyleFromOrientationType(
-        elem: HTMLElement,
-        orientationType: OrientationType
-    ) {
         elem.style.left = 'auto';
         elem.style.right = 'auto';
         if (orientationType === 'landscape-primary') {
@@ -55,7 +60,7 @@ export default function ConfirmActionBar(props: Props) {
 
     return (
         <section
-            ref={elem}
+            ref={elemRef}
             class='flex z-10 w-full h-[8rem] landscape:w-[8rem] landscape:h-full bg-neutral-950/30 fixed bottom-0 landscape:bottom-auto justify-center items-center transition-transform delay-[0.15s]'>
             <menu class='w-full h-full flex flex-row landscape:flex-col justify-center items-center space-x-8 landscape:space-x-0 landscape:space-y-8'>
                 <li class='w-16 h-16'>

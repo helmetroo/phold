@@ -29,11 +29,8 @@ type State = {
     },
 
     confirmingAction: boolean,
-    orientationType: OrientationType | 'unknown',
 }
 export default class App extends Component<{}, State> {
-    private resizeObserver: ResizeObserver
-        = new ResizeObserver(this.updateAspectRatioStatus.bind(this));
     private sourceManager = new SourceManager({
         beforeCameraReloads: this.beforeCameraReloads.bind(this),
         onCameraReloaded: this.onCameraReloaded.bind(this)
@@ -55,7 +52,6 @@ export default class App extends Component<{}, State> {
             message: [],
         },
         confirmingAction: false,
-        orientationType: screen?.orientation.type ?? 'unknown'
     };
 
     static contextType = SettingsCtx;
@@ -87,8 +83,7 @@ export default class App extends Component<{}, State> {
             this.faceWatcher.start();
         });
 
-        this.updateAspectRatioStatus();
-        this.watchForWindowAspectRatioChange();
+        this.watchForOrientationTypeChange();
         this.watchForAppFocusAndBlur();
         this.watchForFoldsSettingsChanges();
     }
@@ -108,50 +103,17 @@ export default class App extends Component<{}, State> {
         }
     }
 
-    private watchForWindowAspectRatioChange() {
-        this.resizeObserver.observe(document.body);
+    private watchForOrientationTypeChange() {
+        effect(() => {
+            const newOrientationType =
+                this.context.orientationType.value;
 
-        if (screen && screen.orientation) {
-            screen.orientation.addEventListener(
-                'change',
-                this.updateAspectRatioStatus.bind(this)
-            );
-        } else {
-            window.addEventListener(
-                'orientationchange',
-                this.updateAspectRatioStatus.bind(this)
-            );
-        }
-    }
+            const [appContainer] = document.getElementsByTagName('main');
+            if (!appContainer)
+                return;
 
-    private updateAspectRatioStatus() {
-        const newOrientationType = App.getOrientationType();
-        this.setState(prevState => ({
-            orientationType: newOrientationType,
-            confirmingAction: prevState.confirmingAction,
-            error: {
-                ...prevState.error
-            }
-        }));
-
-        const [appContainer] = document.getElementsByTagName('main');
-        if (!appContainer)
-            return;
-
-        App.setFlexDirection(appContainer, newOrientationType);
-    }
-
-    private static getOrientationType(): OrientationType {
-        const windowIsLandscape = window.matchMedia('(orientation: landscape)').matches;
-        const orientationType = screen?.orientation.type ?? 'unknown';
-
-        const orientationTypeSplit = orientationType.split('-');
-        const orientationAngleName =
-            (orientationTypeSplit[1] as 'primary' | 'secondary') ?? 'primary';
-
-        return windowIsLandscape
-            ? `landscape-${orientationAngleName}`
-            : `portrait-${orientationAngleName}`;
+            App.setFlexDirection(appContainer, newOrientationType);
+        });
     }
 
     private static setFlexDirection(
@@ -159,6 +121,7 @@ export default class App extends Component<{}, State> {
         orientationType: OrientationType
     ) {
         container.style.flexDirection = '';
+
         if (orientationType === 'landscape-primary') {
             container.style.flexDirection = 'row';
         } else if (orientationType === 'landscape-secondary') {
@@ -312,7 +275,6 @@ export default class App extends Component<{}, State> {
 
         this.setState(prevState => ({
             confirmingAction: true,
-            orientationType: prevState.orientationType,
             error: {
                 ...prevState.error
             }
@@ -412,7 +374,6 @@ export default class App extends Component<{}, State> {
 
         this.setState(prevState => ({
             confirmingAction: prevState.confirmingAction,
-            orientationType: prevState.orientationType,
             error: {
                 showing: true,
                 message: errMessage
@@ -423,7 +384,6 @@ export default class App extends Component<{}, State> {
     private hideError() {
         this.setState(prevState => ({
             confirmingAction: prevState.confirmingAction,
-            orientationType: prevState.orientationType,
             error: {
                 showing: false,
                 message: ''
@@ -486,7 +446,6 @@ export default class App extends Component<{}, State> {
 
         this.setState(prevState => ({
             confirmingAction: false,
-            orientationType: prevState.orientationType,
             error: {
                 ...prevState.error
             }
@@ -505,7 +464,6 @@ export default class App extends Component<{}, State> {
                     ref={this.shutterFlash}
                 />
                 <SettingsBar
-                    orientationType={this.state.orientationType}
                 />
                 <RenderCanvas
                     ref={this.renderCanvas}
@@ -514,14 +472,12 @@ export default class App extends Component<{}, State> {
                     visible={this.state.confirmingAction}
                     yesCallback={this.acceptUploadedPhoto.bind(this)}
                     noCallback={this.rejectUploadedPhoto.bind(this)}
-                    orientationType={this.state.orientationType}
                 />
                 <ShutterBar
                     visible={!this.state.confirmingAction}
                     pickImageCallback={this.handleChosenImage.bind(this)}
                     shutterCallback={this.handleShutter.bind(this)}
                     swapCameraCallback={this.handleSwapCamera.bind(this)}
-                    orientationType={this.state.orientationType}
                 />
             </>
         );

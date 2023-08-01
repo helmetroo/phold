@@ -1,10 +1,5 @@
-import {
-    useRef,
-    useEffect,
-    useContext,
-    useState
-} from 'preact/hooks';
-import { batch } from '@preact/signals';
+import { useRef, useContext, useState, useEffect } from 'preact/hooks';
+import { batch, useSignalEffect } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 
 import Icon from './icon';
@@ -17,34 +12,33 @@ import type { NumCallback } from '@/types/callback';
 
 interface Props {
     visible: boolean,
-    orientationType: OrientationType,
 }
 export default function FoldsSettingsBar(props: Props) {
+    const elemRef = useRef<HTMLElement>(null);
+
     const {
-        visible,
-    } = props;
+        settings,
+        orientationType
+    } = useContext(SettingsCtx);
 
-    const elem = useRef<HTMLElement>(null);
-
-    const { settings } = useContext(SettingsCtx);
-
+    // Watch for req'd style updates when orientation and visibility status changes
     useEffect(() => {
-        if (!elem.current)
+        const newOrientationType = orientationType.peek();
+        const newVisible = props.visible;
+        setStyle(newOrientationType, newVisible);
+    }, [props.visible]);
+
+    useSignalEffect(() => {
+        const newOrientationType = orientationType.value;
+        const newVisible = props.visible;
+        setStyle(newOrientationType, newVisible);
+    });
+
+    function setStyle(orientationType: OrientationType, visible: boolean) {
+        const elem = elemRef.current;
+        if (!elem)
             return;
 
-        setStyleFromOrientationType(
-            elem.current,
-            props.orientationType
-        );
-    }, [
-        props.visible,
-        props.orientationType
-    ]);
-
-    function setStyleFromOrientationType(
-        elem: HTMLElement,
-        orientationType: OrientationType
-    ) {
         elem.style.left = 'auto';
         elem.style.right = 'auto';
 
@@ -79,7 +73,7 @@ export default function FoldsSettingsBar(props: Props) {
 
     return (
         <section
-            ref={elem}
+            ref={elemRef}
             class='flex relative landscape:absolute z-[-1] top-0 portrait:w-full landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
             <menu class='flex flex-row flex-wrap landscape:p-4'>
                 <Slider

@@ -3,14 +3,7 @@ import { useState } from 'preact/hooks';
 import FoldsSettingsBar from './folds-settings-bar';
 import Icon from './icon';
 
-interface Props {
-    orientationType: OrientationType,
-}
-export default function SettingsBar(props: Props) {
-    const {
-        orientationType,
-    } = props;
-
+export default function SettingsBar() {
     const [
         foldsSettingsActive,
         setFoldsSettingsActive
@@ -35,7 +28,6 @@ export default function SettingsBar(props: Props) {
             </menu>
             <FoldsSettingsBar
                 visible={foldsSettingsActive}
-                orientationType={orientationType}
             />
         </section>
     );
