@@ -55,7 +55,7 @@ export default function FoldsSettingsBar(props: Props) {
             elem.style.transform = visible ? 'translateX(3.7rem)' : 'translateX(-100%)';
         } else if (orientationType === 'landscape-secondary') {
             elem.style.right = `-${elem.offsetWidth}`;
-            elem.style.transform = visible ? 'translateX(3.7rem)' : 'translateX(-100%)';
+            elem.style.transform = visible ? 'translateX(-100%)' : 'translateX(3.7rem)';
         } else {
             // Not handling portrait-secondary
             elem.style.transform = visible ? 'translateY(0%)' : 'translateY(-100%)';
