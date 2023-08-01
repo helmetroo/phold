@@ -7,13 +7,19 @@ import {
     normalize,
     toClipSpace
 } from '@/utils/point';
+
 import Rect from '@/types/rect';
+import type { SignaledFoldsSettings } from '@/types/folds-settings';
 
 import type { DetectedFace } from './face-watcher';
 
 const NINETY_DEGS = Math.PI / 2;
 
-export default function generateFolds(face: DetectedFace, normDivisor: Point) {
+export default function generateFolds(
+    face: DetectedFace,
+    normDivisor: Point,
+    settings: SignaledFoldsSettings
+) {
     const { landmarks } = face;
     const jaw = landmarks.getJawOutline();
     const faceCenter = toClipSpace(
@@ -31,6 +37,7 @@ export default function generateFolds(face: DetectedFace, normDivisor: Point) {
         bR: eyeIntcptRight,
     } = computeEyeFoldRects(
         landmarks,
+        settings,
         faceCenter,
         normDivisor
     );
@@ -44,6 +51,7 @@ export default function generateFolds(face: DetectedFace, normDivisor: Point) {
         rects: mouthRects
     } = computeMouthFoldRects(
         landmarks,
+        settings,
         faceCenter,
         normDivisor,
         eyeBottomLeft,
@@ -62,8 +70,9 @@ export default function generateFolds(face: DetectedFace, normDivisor: Point) {
 
 function computeEyeFoldRects(
     landmarks: FaceLandmarks68,
+    { pX: in_pX, pY: in_pY, mP, scale }: SignaledFoldsSettings,
     faceCenter: Point,
-    normDivisor: Point
+    normDivisor: Point,
 ) {
     // Always assuming right eye is always right of left eye (no upside down)
     const lEye = landmarks.getLeftEye();
@@ -74,8 +83,8 @@ function computeEyeFoldRects(
 
     // Eye size determined from "larger" eye, compute padding
     const r = Math.max(lEyeRadius, rEyeRadius);
-    let pX = 3.0 * r;
-    let pY = 1.4 * r;
+    let pX = in_pX.value * r;
+    let pY = in_pY.value * r;
 
     const lCenter = faceApiUtils.getCenterPoint(lEye);
     const rCenter = faceApiUtils.getCenterPoint(rEye);
@@ -124,10 +133,10 @@ function computeEyeFoldRects(
         blX = factor * (bL - bB);
         blY += m * blX;
 
-        urX = factor * (bR - bU);
+        urX = factor * (bR! - bU);
         urY += m * urX;
 
-        brX = factor * (bR - bB);
+        brX = factor * (bR! - bB);
         brY += m * brX;
     } else {
         ulX = lCenter.x - pX;
@@ -145,17 +154,19 @@ function computeEyeFoldRects(
     });
 
     const normRect = rect.normalize(normDivisor);
+    const scalePt = new Point(scale.value, scale.value);
+    const mpPt = new Point(mP.value, mP.value);
     const texSpaceRect = normRect;
     const clipSpaceRect = normRect
         .toClipSpace()
-        .scaleFromOrigin(faceCenter, new Point(1.5, 1.5));
+        .scaleFromOrigin(faceCenter, scalePt);
     const leftHeight = clipSpaceRect.ul.sub(clipSpaceRect.bl)
-        .mul(new Point(0.85, 0.85));
+        .mul(mpPt);
     clipSpaceRect.ul = clipSpaceRect.ul.add(leftHeight);
     clipSpaceRect.bl = clipSpaceRect.bl.add(leftHeight);
 
     const rightHeight = clipSpaceRect.ur.sub(clipSpaceRect.br)
-        .mul(new Point(0.85, 0.85));
+        .mul(mpPt);
     clipSpaceRect.ur = clipSpaceRect.ur.add(rightHeight);
     clipSpaceRect.br = clipSpaceRect.br.add(rightHeight);
 
@@ -173,6 +184,7 @@ function computeEyeFoldRects(
 
 function computeMouthFoldRects(
     landmarks: FaceLandmarks68,
+    { mP, scale }: SignaledFoldsSettings,
     faceCenter: Point,
     normDivisor: Point,
     eyeBottomLeft: Point,
@@ -184,7 +196,7 @@ function computeMouthFoldRects(
 ) {
     const mouth = landmarks.getMouth();
     const r = getRadius(mouth);
-    const p = 0.85 * r;
+    const p = mP.value * r;
     const center = faceApiUtils.getCenterPoint(mouth);
 
     // Intercepts
@@ -242,7 +254,7 @@ function computeMouthFoldRects(
     const texSpaceRect = normRect;
     const clipSpaceRect = normRect
         .toClipSpace()
-        .scaleFromOrigin(faceCenter, new Point(1.5, 1.5));
+        .scaleFromOrigin(faceCenter, new Point(scale.value, scale.value));
 
     // Move mouth verts towards provided eye verts to close gap
     const eyeMouthLeftGap = eyeBottomLeft.sub(clipSpaceRect.bl);

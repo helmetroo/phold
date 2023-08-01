@@ -2,21 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-.no-highlight-btn {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+@layer components {
+    input[type=range] {
+        @apply appearance-none bg-transparent;
+        accent-color: #fff;
+        cursor: pointer;
+    }
+
+    input[type=range]::range-track {
+        @apply bg-white/25 rounded-full;
+    }
+
+    input[type=range]::range-thumb {
+        @apply bg-white/100 rounded-full;
+    }
 }
 
 .no-highlight-btn {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
     outline: none !important;
 }
 
 body {
     font-family: 'Victor Mono', ui-monospace, monospace;
-    font-smoothing: antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }

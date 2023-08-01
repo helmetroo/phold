@@ -144,7 +144,7 @@ export default class RenderCanvas extends Component<Props> {
     render() {
         return (
             <section
-                class='relative flex justify-center w-full h-[calc(100vh-3rem)] landscape:h-full landscape:justify-start landscape:items-center'
+                class='relative flex justify-center w-full h-[calc(100vh-4rem)] landscape:h-full landscape:justify-start landscape:items-center'
                 ref={this.ctrRef}
             >
                 <canvas

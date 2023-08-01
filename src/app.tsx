@@ -1,4 +1,7 @@
-import { Component, createRef } from 'preact';
+import { Component, createRef, ContextType } from 'preact';
+import { effect } from '@preact/signals';
+
+import SettingsCtx from '@/contexts/settings';
 
 import SourceManager from './source-manager';
 import FaceWatcher from './face-watcher';
@@ -10,6 +13,7 @@ import AppError from '@/types/app-error';
 import type ChosenFile from '@/types/chosen-file';
 
 import RenderCanvas from './render-canvas';
+
 import SettingsBar from '@/ui/settings-bar';
 import ShutterBar from '@/ui/shutter-bar';
 import ConfirmActionBar from '@/ui/confirm-action-bar';
@@ -46,13 +50,16 @@ export default class App extends Component<{}, State> {
     };
 
     state = {
-        confirmingAction: false,
         error: {
             showing: false,
             message: [],
         },
+        confirmingAction: false,
         orientationType: screen?.orientation.type ?? 'unknown'
     };
+
+    static contextType = SettingsCtx;
+    declare context: ContextType<typeof SettingsCtx>;
 
     private get showingError() {
         return this.state.error.showing;
@@ -83,6 +90,7 @@ export default class App extends Component<{}, State> {
         this.updateAspectRatioStatus();
         this.watchForWindowAspectRatioChange();
         this.watchForAppFocusAndBlur();
+        this.watchForFoldsSettingsChanges();
     }
 
     componentWillUnmount() {
@@ -188,6 +196,23 @@ export default class App extends Component<{}, State> {
         this.stopAll();
     }
 
+    private watchForFoldsSettingsChanges() {
+        const foldsSettings =
+            this.context.settings.folds.all();
+
+        effect(() => {
+            // Force read the settings
+            (() => foldsSettings.value)();
+
+            // Recalculate folds if we're rendering an image
+            if (this.sourceManager.currentType === 'camera')
+                return;
+
+            this.setFoldsFromFaces(this.faceWatcher.faces);
+            this.renderer.forceRender();
+        });
+    }
+
     stopAll() {
         this.renderer.stop();
         this.faceWatcher.stop();
@@ -256,8 +281,9 @@ export default class App extends Component<{}, State> {
 
     private setFoldsFromFaces(faces: DetectedFaces) {
         const normDivisor = this.sourceManager.current.getNormDivisor();
+        const currentFoldsSettings = this.context.settings.folds;
         const newFolds = faces.map(
-            face => generateFolds(face, normDivisor)
+            face => generateFolds(face, normDivisor, currentFoldsSettings)
         );
 
         this.renderer.folds = newFolds;
@@ -390,7 +416,7 @@ export default class App extends Component<{}, State> {
             error: {
                 showing: true,
                 message: errMessage
-            }
+            },
         }));
     }
 
@@ -479,6 +505,7 @@ export default class App extends Component<{}, State> {
                     ref={this.shutterFlash}
                 />
                 <SettingsBar
+                    orientationType={this.state.orientationType}
                 />
                 <RenderCanvas
                     ref={this.renderCanvas}

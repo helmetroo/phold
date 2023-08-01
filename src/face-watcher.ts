@@ -19,6 +19,7 @@ export default class FaceWatcher {
     private loaded = false;
     private currentSource: Source;
     private timeoutId: NodeJS.Timeout | null = null;
+    private lastFaces: DetectedFaces = [];
 
     private options: TinyFaceDetectorOptions
         = new TinyFaceDetectorOptions({
@@ -31,6 +32,10 @@ export default class FaceWatcher {
     ) {
         this.currentSource = new BlankSource();
         this.currentSource.load();
+    }
+
+    get faces() {
+        return this.lastFaces;
     }
 
     set source(newSource: Source) {
@@ -62,6 +67,8 @@ export default class FaceWatcher {
 
     private async watchFaces() {
         const newFaces = await this.detectFaces();
+        this.lastFaces = newFaces;
+
         this.onDetect(newFaces);
 
         this.timeoutId = setTimeout(this.watchFaces.bind(this), 0);
