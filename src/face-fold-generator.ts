@@ -133,10 +133,10 @@ function computeEyeFoldRects(
         blX = factor * (bL - bB);
         blY += m * blX;
 
-        urX = factor * (bR! - bU);
+        urX = factor * (bR - bU);
         urY += m * urX;
 
-        brX = factor * (bR! - bB);
+        brX = factor * (bR - bB);
         brY += m * brX;
     } else {
         ulX = lCenter.x - pX;
