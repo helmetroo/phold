@@ -70,7 +70,7 @@ export default function generateFolds(
 
 function computeEyeFoldRects(
     landmarks: FaceLandmarks68,
-    { pX: in_pX, pY: in_pY, mP, scale }: SignaledFoldsSettings,
+    { pX: in_pX, pY: in_pY, scale }: SignaledFoldsSettings,
     faceCenter: Point,
     normDivisor: Point,
 ) {
@@ -155,18 +155,17 @@ function computeEyeFoldRects(
 
     const normRect = rect.normalize(normDivisor);
     const scalePt = new Point(scale.value, scale.value);
-    const mpPt = new Point(mP.value, mP.value);
     const texSpaceRect = normRect;
     const clipSpaceRect = normRect
         .toClipSpace()
         .scaleFromOrigin(faceCenter, scalePt);
     const leftHeight = clipSpaceRect.ul.sub(clipSpaceRect.bl)
-        .mul(mpPt);
+        .mul(new Point(0.5, 0.5));
     clipSpaceRect.ul = clipSpaceRect.ul.add(leftHeight);
     clipSpaceRect.bl = clipSpaceRect.bl.add(leftHeight);
 
     const rightHeight = clipSpaceRect.ur.sub(clipSpaceRect.br)
-        .mul(mpPt);
+        .mul(new Point(0.5, 0.5));
     clipSpaceRect.ur = clipSpaceRect.ur.add(rightHeight);
     clipSpaceRect.br = clipSpaceRect.br.add(rightHeight);
 
