@@ -74,8 +74,8 @@ export default function FoldsSettingsBar(props: Props) {
     return (
         <section
             ref={elemRef}
-            class='flex relative landscape:absolute z-[-1] top-0 portrait:w-full landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
-            <menu class='flex flex-row flex-wrap landscape:p-4'>
+            class='flex relative landscape:absolute z-[-1] top-0 portrait:w-full landscape:w-72 landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
+            <menu class='flex flex-row flex-wrap landscape:max-h-[52%] landscape:p-4'>
                 <Slider
                     name='Padding X'
                     icon='padding-horiz'
@@ -89,6 +89,8 @@ export default function FoldsSettingsBar(props: Props) {
                     alignRight
                     value={settings.folds.pY}
                     onValueChange={updateFoldsSettings('pY')}
+                    min={0.2}
+                    max={3.0}
                 />
 
                 <Slider
@@ -96,6 +98,8 @@ export default function FoldsSettingsBar(props: Props) {
                     icon='mouth-padding'
                     value={settings.folds.mP}
                     onValueChange={updateFoldsSettings('mP')}
+                    min={0.2}
+                    max={2.0}
                 />
 
                 <Slider
@@ -104,6 +108,8 @@ export default function FoldsSettingsBar(props: Props) {
                     alignRight
                     value={settings.folds.scale}
                     onValueChange={updateFoldsSettings('scale')}
+                    min={1}
+                    max={5}
                 />
 
                 <ResetButton callback={resetFoldsSettings} />
@@ -118,8 +124,20 @@ interface SliderProps {
     alignRight?: boolean,
     value: Signal<number>,
     onValueChange: NumCallback,
+    min?: number,
+    max?: number,
 }
-function Slider({ name, icon, alignRight, value, onValueChange }: SliderProps) {
+function Slider(props: SliderProps) {
+    const {
+        name,
+        icon,
+        alignRight,
+        value,
+        onValueChange,
+        min,
+        max,
+    } = props;
+
     const inputId = `phold-setting-${name}`;
     const portraitPadding = !!alignRight ? 'portrait:pl-6' : 'portrait:pr-6';
 
@@ -139,13 +157,16 @@ function Slider({ name, icon, alignRight, value, onValueChange }: SliderProps) {
             <input
                 id={inputId}
                 type='range'
-                min='0'
-                max='10'
+                min={min ?? 0}
+                max={max ?? 10}
                 step='0.1'
                 value={value}
                 onInput={onInputChange}
-                class='flex-1 portrait:ml-4 portrait:w-full'
+                class='flex-1 portrait:ml-3 portrait:mr-3 portrait:w-full'
             />
+            <span class='bg-black text-white p-1 rounded'>
+                {value.value.toFixed(1)}
+            </span>
         </li>
     );
 }
@@ -161,7 +182,7 @@ function ResetButton({ callback }: ResetButtonProps) {
     }
 
     return (
-        <li class='flex w-full justify-center items-center portrait:mt-4'>
+        <li class='flex w-full justify-center items-center mt-4'>
             <button
                 onClick={onPress}
                 class={`${animating ? 'animate-button-press' : ''} w-full p-4 rounded-lg bg-neutral-600 text-white text-sm leading-[0] cursor-pointer transition ease-out duration-10 origin-center hover:bg-neutral-900`}
