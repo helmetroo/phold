@@ -120,7 +120,7 @@ export default class App extends Component<{}, State> {
         container: HTMLElement,
         orientationType: OrientationType
     ) {
-        container.style.flexDirection = '';
+        container.style.flexDirection = 'column';
 
         if (orientationType === 'landscape-primary') {
             container.style.flexDirection = 'row';
