@@ -70,10 +70,18 @@ export default function generateFolds(
 
 function computeEyeFoldRects(
     landmarks: FaceLandmarks68,
-    { pX: in_pX, pY: in_pY, scale }: SignaledFoldsSettings,
+    settings: SignaledFoldsSettings,
     faceCenter: Point,
     normDivisor: Point,
 ) {
+    const {
+        oX,
+        oY,
+        pX: in_pX,
+        pY: in_pY,
+        scale,
+    } = settings;
+
     // Always assuming right eye is always right of left eye (no upside down)
     const lEye = landmarks.getLeftEye();
     const lEyeRadius = getRadius(lEye);
@@ -155,19 +163,22 @@ function computeEyeFoldRects(
 
     const normRect = rect.normalize(normDivisor);
     const scalePt = new Point(scale.value, scale.value);
+    const offset = new Point(oX.value, oY.value);
     const texSpaceRect = normRect;
     const clipSpaceRect = normRect
         .toClipSpace()
         .scaleFromOrigin(faceCenter, scalePt);
     const leftHeight = clipSpaceRect.ul.sub(clipSpaceRect.bl)
         .mul(new Point(0.5, 0.5));
-    clipSpaceRect.ul = clipSpaceRect.ul.add(leftHeight);
-    clipSpaceRect.bl = clipSpaceRect.bl.add(leftHeight);
+    const leftOffset = leftHeight.add(offset);
+    clipSpaceRect.ul = clipSpaceRect.ul.add(leftOffset);
+    clipSpaceRect.bl = clipSpaceRect.bl.add(leftOffset);
 
     const rightHeight = clipSpaceRect.ur.sub(clipSpaceRect.br)
         .mul(new Point(0.5, 0.5));
-    clipSpaceRect.ur = clipSpaceRect.ur.add(rightHeight);
-    clipSpaceRect.br = clipSpaceRect.br.add(rightHeight);
+    const rightOffset = rightHeight.add(offset);
+    clipSpaceRect.ur = clipSpaceRect.ur.add(rightOffset);
+    clipSpaceRect.br = clipSpaceRect.br.add(rightOffset);
 
     return {
         m,

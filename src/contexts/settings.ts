@@ -8,6 +8,8 @@ import FoldsSettings from '@/types/folds-settings';
 import getOrientationType from '@/utils/get-orientation-type';
 
 const DEFAULT_FOLDS_SETTINGS: FoldsSettings = {
+    oX: 0,
+    oY: 0,
     pX: 3,
     pY: 1.4,
     mP: 0.85,
@@ -23,6 +25,8 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
 function createDefaultSettings() {
     return {
         folds: {
+            oX: signal(DEFAULT_FOLDS_SETTINGS.oX),
+            oY: signal(DEFAULT_FOLDS_SETTINGS.oY),
             pX: signal(DEFAULT_FOLDS_SETTINGS.pX),
             pY: signal(DEFAULT_FOLDS_SETTINGS.pY),
             mP: signal(DEFAULT_FOLDS_SETTINGS.mP),
@@ -32,6 +36,8 @@ function createDefaultSettings() {
             all: function() {
                 return computed(() => {
                     return {
+                        oX: this.oX.value,
+                        oY: this.oY.value,
                         pX: this.pX.value,
                         pY: this.pY.value,
                         mP: this.mP.value,

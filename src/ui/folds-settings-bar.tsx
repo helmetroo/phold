@@ -64,6 +64,8 @@ export default function FoldsSettingsBar(props: Props) {
 
     function resetFoldsSettings() {
         batch(() => {
+            settings.folds.oX.value = DEFAULT_FOLDS_SETTINGS.oX;
+            settings.folds.oY.value = DEFAULT_FOLDS_SETTINGS.oY;
             settings.folds.pX.value = DEFAULT_FOLDS_SETTINGS.pX;
             settings.folds.pY.value = DEFAULT_FOLDS_SETTINGS.pY;
             settings.folds.mP.value = DEFAULT_FOLDS_SETTINGS.mP;
@@ -76,6 +78,24 @@ export default function FoldsSettingsBar(props: Props) {
             ref={elemRef}
             class='flex relative landscape:absolute z-[-1] top-0 portrait:w-full landscape:w-72 landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
             <menu class='flex flex-row flex-wrap landscape:max-h-[52%] landscape:p-4'>
+                <ScrubInput
+                    label='X'
+                    value={settings.folds.oX}
+                    min={-1}
+                    max={1}
+                    step={0.01}
+                    onValueChange={updateFoldsSettings('oX')}
+                />
+
+                <ScrubInput
+                    label='Y'
+                    value={settings.folds.oY}
+                    min={-1}
+                    max={1}
+                    step={0.01}
+                    onValueChange={updateFoldsSettings('oY')}
+                />
+
                 <Slider
                     name='Padding X'
                     icon='padding-horiz'
@@ -167,6 +187,103 @@ function Slider(props: SliderProps) {
             <span class='bg-black text-white p-1 rounded'>
                 {value.value.toFixed(1)}
             </span>
+        </li>
+    );
+}
+
+interface ScrubInputProps {
+    label: string,
+    value: Signal<number>,
+    onValueChange: NumCallback,
+    step?: number,
+    min?: number,
+    max?: number,
+}
+function ScrubInput(props: ScrubInputProps) {
+    const {
+        label,
+        value,
+        step,
+        min,
+        max,
+        onValueChange
+    } = props;
+
+    const elemRef = useRef<HTMLInputElement>(null);
+
+    function createScrubber(elem: HTMLInputElement) {
+        // Code leveraged from mburakerman/numscrubberjs
+        // with some necessary changes to get it to work for our inputs
+        elem.readOnly = true;
+        elem.style.appearance = 'textfield';
+
+        // Create wrapper span
+        const span = document.createElement('span');
+        document.body.appendChild(span);
+
+        // Don't change the position of inputs in the DOM
+        elem.parentElement?.replaceChild(span, elem);
+        span.style.position = 'relative';
+        span.style.width = '100%';
+        span.appendChild(elem);
+
+        // Create input range that will be dragged over
+        const range = document.createElement('input');
+        range.setAttribute('type', 'range');
+        span.appendChild(range);
+
+        // Copy properties from elem into range
+        const step = elem.getAttribute('step') ?? '1';
+        range.setAttribute('step', step);
+        range.value = elem.value;
+        range.min = elem.min;
+        range.max = elem.max;
+
+        // Range style
+        const inputStyle = getComputedStyle(elem);
+        range.style.position = 'absolute';
+        range.style.margin = inputStyle.margin;
+        range.style.left = '0';
+        range.style.border = '1px solid transparent';
+        range.style.opacity = '0';
+        range.style.cursor = 'ew-resize';
+
+        // Make range width & height equal to input elem
+        range.style.width = '100%';
+        range.style.height = '100%';
+
+        return range;
+    }
+
+    function updateValueAndTrigger(this: HTMLInputElement) {
+        const newValue = parseFloat(this.value);
+        onValueChange(newValue);
+    }
+
+    useEffect(() => {
+        const range = createScrubber(elemRef.current!);
+        range.addEventListener('input', updateValueAndTrigger);
+
+        return () => {
+            range.removeEventListener('input', updateValueAndTrigger);
+        };
+    }, []);
+
+    // The pl-4 on the input pushes its text more to the center
+    return (
+        <li class='flex flex-row flex-[50%] w-[50%] h-[3rem] items-center'>
+            <span class='text-white mx-3'>
+                {label}
+            </span>
+            <input
+                ref={elemRef}
+                class='bg-black text-white text-center p-1 pl-4 rounded flex-1 w-full'
+                type='number'
+                value={value}
+                step={step ?? 0.1}
+                min={min ?? -10}
+                max={max ?? 10}
+            />
         </li>
     );
 }
