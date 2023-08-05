@@ -1,5 +1,6 @@
-import { useRef, useEffect, useContext } from 'preact/hooks';
+import { useRef, useContext } from 'preact/hooks';
 import { useSignalEffect } from '@preact/signals';
+import type { Signal } from '@preact/signals';
 
 import SettingsCtx from '@/contexts/settings';
 
@@ -11,13 +12,14 @@ import type Callback from '@/types/callback';
 import type { FileCallback } from '@/types/callback';
 
 interface Props {
-    visible: boolean,
+    visible: Signal<boolean>,
     pickImageCallback: FileCallback,
     shutterCallback: Callback,
     swapCameraCallback: Callback,
 }
 export default function ShutterBar(props: Props) {
     const {
+        visible,
         pickImageCallback,
         shutterCallback,
         swapCameraCallback,
@@ -30,15 +32,9 @@ export default function ShutterBar(props: Props) {
     } = useContext(SettingsCtx);
 
     // Watch for req'd style updates when orientation and visibility status changes
-    useEffect(() => {
-        const newOrientationType = orientationType.peek();
-        const newVisible = props.visible;
-        setStyle(newOrientationType, newVisible);
-    }, [props.visible]);
-
     useSignalEffect(() => {
         const newOrientationType = orientationType.value;
-        const newVisible = props.visible;
+        const newVisible = visible.value;
         setStyle(newOrientationType, newVisible);
     });
 

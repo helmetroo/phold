@@ -1,5 +1,6 @@
-import { useRef, useEffect, useContext } from 'preact/hooks';
+import { useRef, useContext } from 'preact/hooks';
 import { useSignalEffect } from '@preact/signals';
+import type { Signal } from '@preact/signals';
 
 import SettingsCtx from '@/contexts/settings';
 
@@ -9,12 +10,13 @@ import NoButton from './x-button';
 import type Callback from '@/types/callback';
 
 interface Props {
-    visible: boolean,
+    visible: Signal<boolean>,
     yesCallback: Callback,
     noCallback: Callback,
 }
 export default function ConfirmActionBar(props: Props) {
     const {
+        visible,
         yesCallback,
         noCallback
     } = props;
@@ -26,15 +28,9 @@ export default function ConfirmActionBar(props: Props) {
     } = useContext(SettingsCtx);
 
     // Watch for req'd style updates when orientation and visibility status changes
-    useEffect(() => {
-        const newOrientationType = orientationType.peek();
-        const newVisible = props.visible;
-        setStyle(newOrientationType, newVisible);
-    }, [props.visible]);
-
     useSignalEffect(() => {
         const newOrientationType = orientationType.value;
-        const newVisible = props.visible;
+        const newVisible = visible.value;
         setStyle(newOrientationType, newVisible);
     });
 

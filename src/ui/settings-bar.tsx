@@ -1,16 +1,13 @@
-import { useState } from 'preact/hooks';
+import { useSignal } from '@preact/signals';
 
 import FoldsSettingsBar from './folds-settings-bar';
 import Icon from './icon';
 
 export default function SettingsBar() {
-    const [
-        foldsSettingsActive,
-        setFoldsSettingsActive
-    ] = useState(false);
+    const foldsSettingsActive = useSignal(false);
 
     function toggleFoldsSettingsActive() {
-        setFoldsSettingsActive(!foldsSettingsActive);
+        foldsSettingsActive.value = !foldsSettingsActive.value;
     }
 
     return (
@@ -22,7 +19,7 @@ export default function SettingsBar() {
                         class='w-full h-full cursor-pointer no-highlight-btn transition-colors ease-out duration-10'
                         onClick={toggleFoldsSettingsActive}
                     >
-                        <Icon name='folds-settings' classes={`w-full h-full ${foldsSettingsActive ? 'stroke-amber-400' : 'stroke-white'}`} />
+                        <Icon name='folds-settings' classes={`w-full h-full ${foldsSettingsActive.value ? 'stroke-amber-400' : 'stroke-white'}`} />
                     </button>
                 </li>
             </menu>

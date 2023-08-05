@@ -1,29 +1,21 @@
 import { Component } from 'preact';
+import { signal } from '@preact/signals';
 
-interface State {
-    animating: boolean
-}
-export default class ShutterFlash extends Component<{}, State> {
-    state: State = {
-        animating: false
-    }
+export default class ShutterFlash extends Component {
+    private animating = signal(false);
 
     animate() {
-        this.setState({
-            animating: true
-        });
+        this.animating.value = true;
     }
 
     stopAnimating() {
-        this.setState({
-            animating: false
-        });
+        this.animating.value = false;
     }
 
     render() {
         return (
             <div
-                class={`${this.state.animating ? 'block animate-shutter-flash' : 'hidden'} absolute w-full h-full z-10`}
+                class={`${this.animating.value ? 'block animate-shutter-flash' : 'hidden'} absolute w-full h-full z-10`}
                 onAnimationEnd={this.stopAnimating.bind(this)}
             />
         );

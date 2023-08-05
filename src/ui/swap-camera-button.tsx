@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useSignal } from '@preact/signals';
 
 import type Callback from '@/types/callback';
 
@@ -8,18 +8,20 @@ interface Props {
     pressCallback: Callback,
 }
 export default function SwapCameraButton({ pressCallback }: Props) {
-    const [animating, setAnimating] = useState(false);
+    const animating = useSignal(false);
+
     function onPress() {
+        animating.value = true;
         pressCallback();
-        setAnimating(true);
     }
+
     return (
         <button
             aria-label='Swap camera'
-            class={`${animating ? 'animate-button-press animate-spin-once' : ''} w-full h-full p-4 no-highlight-btn flex justify-center items-center rounded-[50%] bg-neutral-600 cursor-pointer transition ease-out duration-10 origin-center hover:scale-[1.1] hover:bg-neutral-900`
+            class={`${animating.value ? 'animate-button-press animate-spin-once' : ''} w-full h-full p-4 no-highlight-btn flex justify-center items-center rounded-[50%] bg-neutral-600 cursor-pointer transition ease-out duration-10 origin-center hover:scale-[1.1] hover:bg-neutral-900`
             }
             onClick={onPress}
-            onAnimationEnd={() => setAnimating(false)}
+            onAnimationEnd={() => animating.value = false}
         >
             <Icon name='swap-camera' classes='w-full h-full fill-white stroke-white' />
         </button>

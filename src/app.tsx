@@ -1,5 +1,5 @@
 import { Component, createRef, ContextType } from 'preact';
-import { effect } from '@preact/signals';
+import { computed, effect, signal } from '@preact/signals';
 
 import SettingsCtx from '@/contexts/settings';
 
@@ -22,23 +22,26 @@ import ErrorOverlay from '@/ui/error-overlay';
 
 import isOniOS from '@/utils/is-on-ios';
 
-type State = {
-    error: {
-        showing: boolean,
-        message: string[] | string
-    },
-
-    confirmingAction: boolean,
-}
-export default class App extends Component<{}, State> {
+export default class App extends Component {
+    // Objects
     private sourceManager = new SourceManager({
         beforeCameraReloads: this.beforeCameraReloads.bind(this),
         onCameraReloaded: this.onCameraReloaded.bind(this)
     });
     private faceWatcher = new FaceWatcher(this.onDetectFaces.bind(this));
     private renderer = new Renderer(this.onRequestResize.bind(this));
+
+    // Refs
     private renderCanvas = createRef<RenderCanvas>();
     private shutterFlash = createRef<ShutterFlash>();
+
+    // Signals
+    private error = {
+        showing: signal(false),
+        message: signal<string[]>([])
+    };
+    private confirmingChosenPhoto = signal(false);
+    private notConfirmingChosenPhoto = computed(() => !this.confirmingChosenPhoto.value);
 
     private availableFeatures = {
         renderer: false,
@@ -46,20 +49,8 @@ export default class App extends Component<{}, State> {
         camera: false,
     };
 
-    state = {
-        error: {
-            showing: false,
-            message: [],
-        },
-        confirmingAction: false,
-    };
-
     static contextType = SettingsCtx;
     declare context: ContextType<typeof SettingsCtx>;
-
-    private get showingError() {
-        return this.state.error.showing;
-    }
 
     componentDidMount() {
         this.initRenderer();
@@ -273,12 +264,7 @@ export default class App extends Component<{}, State> {
 
         this.renderer.forceRender();
 
-        this.setState(prevState => ({
-            confirmingAction: true,
-            error: {
-                ...prevState.error
-            }
-        }));
+        this.confirmingChosenPhoto.value = true;
     }
 
     private handleShutter() {
@@ -358,7 +344,7 @@ export default class App extends Component<{}, State> {
         this.logError(err);
 
         // Prevent new errors from updating if error modal already showing
-        if (!this.showingError)
+        if (this.error.showing.value)
             this.showError(err);
     }
 
@@ -372,23 +358,8 @@ export default class App extends Component<{}, State> {
                 ? err.messageLines
                 : [`Unknown error.`, err.message]
 
-        this.setState(prevState => ({
-            confirmingAction: prevState.confirmingAction,
-            error: {
-                showing: true,
-                message: errMessage
-            },
-        }));
-    }
-
-    private hideError() {
-        this.setState(prevState => ({
-            confirmingAction: prevState.confirmingAction,
-            error: {
-                showing: false,
-                message: ''
-            }
-        }));
+        this.error.showing.value = true;
+        this.error.message.value = errMessage;
     }
 
     private onRequestResize() {
@@ -411,7 +382,7 @@ export default class App extends Component<{}, State> {
         this.renderer.forceRender();
     }
 
-    private async acceptUploadedPhoto() {
+    private async acceptChosenPhoto() {
         const renderCanvas = this.renderCanvas.current;
         if (!renderCanvas)
             return;
@@ -432,7 +403,7 @@ export default class App extends Component<{}, State> {
         await this.switchToCamera();
     }
 
-    private async rejectUploadedPhoto() {
+    private async rejectChosenPhoto() {
         await this.switchToCamera();
     }
 
@@ -444,21 +415,15 @@ export default class App extends Component<{}, State> {
         this.startAll();
         this.renderer.forceRender();
 
-        this.setState(prevState => ({
-            confirmingAction: false,
-            error: {
-                ...prevState.error
-            }
-        }));
+        this.confirmingChosenPhoto.value = false;
     }
 
     render() {
         return (
             <>
                 <ErrorOverlay
-                    visible={this.state.error.showing}
-                    message={this.state.error.message}
-                    onClose={this.hideError.bind(this)}
+                    visible={this.error.showing}
+                    message={this.error.message}
                 />
                 <ShutterFlash
                     ref={this.shutterFlash}
@@ -469,12 +434,12 @@ export default class App extends Component<{}, State> {
                     ref={this.renderCanvas}
                 />
                 <ConfirmActionBar
-                    visible={this.state.confirmingAction}
-                    yesCallback={this.acceptUploadedPhoto.bind(this)}
-                    noCallback={this.rejectUploadedPhoto.bind(this)}
+                    visible={this.confirmingChosenPhoto}
+                    yesCallback={this.acceptChosenPhoto.bind(this)}
+                    noCallback={this.rejectChosenPhoto.bind(this)}
                 />
                 <ShutterBar
-                    visible={!this.state.confirmingAction}
+                    visible={this.notConfirmingChosenPhoto}
                     pickImageCallback={this.handleChosenImage.bind(this)}
                     shutterCallback={this.handleShutter.bind(this)}
                     swapCameraCallback={this.handleSwapCamera.bind(this)}

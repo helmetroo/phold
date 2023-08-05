@@ -1,19 +1,17 @@
-import { useRef, useContext, useState, useEffect } from 'preact/hooks';
-import { batch, useSignalEffect } from '@preact/signals';
+import { useRef, useContext, useEffect } from 'preact/hooks';
+import { batch, useComputed, useSignal, useSignalEffect } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 
 import Icon from './icon';
 
 import SettingsCtx, { DEFAULT_FOLDS_SETTINGS } from '@/contexts/settings';
 
-import FoldsSettings from '@/types/folds-settings';
 import type Callback from '@/types/callback';
-import type { NumCallback } from '@/types/callback';
 
 interface Props {
-    visible: boolean,
+    visible: Signal<boolean>,
 }
-export default function FoldsSettingsBar(props: Props) {
+export default function FoldsSettingsBar({ visible }: Props) {
     const elemRef = useRef<HTMLElement>(null);
 
     const {
@@ -22,15 +20,9 @@ export default function FoldsSettingsBar(props: Props) {
     } = useContext(SettingsCtx);
 
     // Watch for req'd style updates when orientation and visibility status changes
-    useEffect(() => {
-        const newOrientationType = orientationType.peek();
-        const newVisible = props.visible;
-        setStyle(newOrientationType, newVisible);
-    }, [props.visible]);
-
     useSignalEffect(() => {
         const newOrientationType = orientationType.value;
-        const newVisible = props.visible;
+        const newVisible = visible.value;
         setStyle(newOrientationType, newVisible);
     });
 
@@ -56,12 +48,6 @@ export default function FoldsSettingsBar(props: Props) {
         }
     }
 
-    function updateFoldsSettings(key: keyof FoldsSettings) {
-        return (newValue: number) => {
-            settings.folds[key].value = newValue;
-        }
-    }
-
     function resetFoldsSettings() {
         batch(() => {
             settings.folds.oX.value = DEFAULT_FOLDS_SETTINGS.oX;
@@ -80,35 +66,31 @@ export default function FoldsSettingsBar(props: Props) {
             <menu class='flex flex-row flex-wrap custom-scroll-bar landscape:overflow-y-scroll landscape:p-4'>
                 <ScrubInput
                     label='X'
-                    value={settings.folds.oX}
+                    signal={settings.folds.oX}
                     min={-1}
                     max={1}
                     step={0.01}
-                    onValueChange={updateFoldsSettings('oX')}
                 />
 
                 <ScrubInput
                     label='Y'
-                    value={settings.folds.oY}
+                    signal={settings.folds.oY}
                     min={-1}
                     max={1}
                     step={0.01}
-                    onValueChange={updateFoldsSettings('oY')}
                 />
 
                 <Slider
                     name='Padding X'
                     icon='padding-horiz'
-                    value={settings.folds.pX}
-                    onValueChange={updateFoldsSettings('pX')}
+                    signal={settings.folds.pX}
                 />
 
                 <Slider
                     name='Padding Y'
                     icon='padding-vert'
                     alignRight
-                    value={settings.folds.pY}
-                    onValueChange={updateFoldsSettings('pY')}
+                    signal={settings.folds.pY}
                     min={0.2}
                     max={3.0}
                 />
@@ -116,8 +98,7 @@ export default function FoldsSettingsBar(props: Props) {
                 <Slider
                     name='Mouth padding'
                     icon='mouth-padding'
-                    value={settings.folds.mP}
-                    onValueChange={updateFoldsSettings('mP')}
+                    signal={settings.folds.mP}
                     min={0.2}
                     max={2.0}
                 />
@@ -126,8 +107,7 @@ export default function FoldsSettingsBar(props: Props) {
                     name='Scale'
                     icon='scale'
                     alignRight
-                    value={settings.folds.scale}
-                    onValueChange={updateFoldsSettings('scale')}
+                    signal={settings.folds.scale}
                     min={1}
                     max={5}
                 />
@@ -142,8 +122,7 @@ interface SliderProps {
     name: string,
     icon: string,
     alignRight?: boolean,
-    value: Signal<number>,
-    onValueChange: NumCallback,
+    signal: Signal<number>,
     min?: number,
     max?: number,
 }
@@ -152,18 +131,20 @@ function Slider(props: SliderProps) {
         name,
         icon,
         alignRight,
-        value,
-        onValueChange,
+        signal,
         min,
         max,
     } = props;
 
     const inputId = `phold-setting-${name.toLowerCase().replace(' ', '-')}`;
     const portraitPadding = !!alignRight ? 'portrait:pl-6' : 'portrait:pr-6';
+    const formattedValue = useComputed(() => {
+        return signal.value.toFixed(1);
+    });
 
     function onInputChange(e: Event) {
-        const value = parseFloat((e.target as HTMLInputElement).value);
-        onValueChange(value);
+        signal.value =
+            parseFloat((e.target as HTMLInputElement).value);
     }
 
     return (
@@ -180,12 +161,12 @@ function Slider(props: SliderProps) {
                 min={min ?? 0}
                 max={max ?? 10}
                 step='0.1'
-                value={value}
+                value={signal}
                 onInput={onInputChange}
                 class='flex-1 portrait:ml-3 portrait:mr-3 portrait:w-full'
             />
             <span class='bg-black text-white p-1 rounded'>
-                {value.value.toFixed(1)}
+                {formattedValue}
             </span>
         </li>
     );
@@ -193,8 +174,7 @@ function Slider(props: SliderProps) {
 
 interface ScrubInputProps {
     label: string,
-    value: Signal<number>,
-    onValueChange: NumCallback,
+    signal: Signal<number>,
     step?: number,
     min?: number,
     max?: number,
@@ -202,11 +182,10 @@ interface ScrubInputProps {
 function ScrubInput(props: ScrubInputProps) {
     const {
         label,
-        value,
+        signal,
         step,
         min,
         max,
-        onValueChange
     } = props;
 
     const elemRef = useRef<HTMLInputElement>(null);
@@ -257,8 +236,7 @@ function ScrubInput(props: ScrubInputProps) {
     }
 
     function updateValueAndTrigger(this: HTMLInputElement) {
-        const newValue = parseFloat(this.value);
-        onValueChange(newValue);
+        signal.value = parseFloat(this.value);
     }
 
     useEffect(() => {
@@ -279,7 +257,7 @@ function ScrubInput(props: ScrubInputProps) {
                 ref={elemRef}
                 class='custom-number-input bg-black text-white text-center p-1 rounded flex-1 w-full'
                 type='number'
-                value={value}
+                value={signal}
                 step={step ?? 0.1}
                 min={min ?? -10}
                 max={max ?? 10}
@@ -292,9 +270,10 @@ interface ResetButtonProps {
     callback: Callback,
 }
 function ResetButton({ callback }: ResetButtonProps) {
-    const [animating, setAnimating] = useState(false);
+    const animating = useSignal(false);
+
     function onPress() {
-        setAnimating(true);
+        animating.value = true;
         callback();
     }
 
@@ -302,7 +281,7 @@ function ResetButton({ callback }: ResetButtonProps) {
         <li class='flex w-full justify-center items-center mt-4'>
             <button
                 onClick={onPress}
-                class={`${animating ? 'animate-button-press' : ''} w-full p-4 rounded-lg bg-neutral-600 text-white text-sm leading-[0] cursor-pointer transition ease-out duration-10 origin-center hover:bg-neutral-900`}
+                class={`${animating.value ? 'animate-button-press' : ''} w-full p-4 rounded-lg bg-neutral-600 text-white text-sm leading-[0] cursor-pointer transition ease-out duration-10 origin-center hover:bg-neutral-900`}
             >
                 RESET
             </button>

@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useSignal } from '@preact/signals';
 
 import type Callback from '@/types/callback';
 
@@ -10,18 +10,19 @@ interface Props {
     callback: Callback,
 }
 export default function CheckButton({ label, classes, callback }: Props) {
-    const [animating, setAnimating] = useState(false);
+    const animating = useSignal(false);
+
     function onPress() {
-        setAnimating(true);
+        animating.value = true;
         callback();
     }
 
     return (
         <button
             aria-label={label}
-            class={`${classes || ''} ${animating ? 'animate-button-press' : ''} flex justify-center items-center rounded-[50%] w-16 h-16 p-4 bg-neutral-600 cursor-pointer transition ease-out duration-10 origin-center hover:scale-[1.1] hover:bg-neutral-900`}
+            class={`${classes || ''} ${animating.value ? 'animate-button-press' : ''} flex justify-center items-center rounded-[50%] w-16 h-16 p-4 bg-neutral-600 cursor-pointer transition ease-out duration-10 origin-center hover:scale-[1.1] hover:bg-neutral-900`}
             onClick={onPress}
-            onAnimationEnd={() => setAnimating(false)}
+            onAnimationEnd={() => animating.value = false}
         >
             <Icon name='check' classes='w-full h-full stroke-white' />
         </button>
