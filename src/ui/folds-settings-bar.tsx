@@ -158,7 +158,7 @@ function Slider(props: SliderProps) {
         max,
     } = props;
 
-    const inputId = `phold-setting-${name}`;
+    const inputId = `phold-setting-${name.toLowerCase().replace(' ', '-')}`;
     const portraitPadding = !!alignRight ? 'portrait:pl-6' : 'portrait:pr-6';
 
     function onInputChange(e: Event) {
