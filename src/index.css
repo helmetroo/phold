@@ -24,6 +24,16 @@
     outline: none !important;
 }
 
+.custom-scroll-bar {
+    scrollbar-color: #888 #111;
+    scrollbar-width: thin;
+}
+
+/* postcss-scrollbar doesn't handle track & thumb */
+.custom-scroll-bar::-webkit-scrollbar-track,
+.custom-scroll-bar::-webkit-scrollbar-thumb {
+    border-radius: 1rem;
+}
 body {
     font-family: 'Victor Mono', ui-monospace, monospace;
     -webkit-font-smoothing: antialiased;

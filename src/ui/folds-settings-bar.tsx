@@ -77,7 +77,7 @@ export default function FoldsSettingsBar(props: Props) {
         <section
             ref={elemRef}
             class='flex relative landscape:absolute z-[-1] top-0 portrait:w-full landscape:w-72 landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
-            <menu class='flex flex-row flex-wrap landscape:max-h-[52%] landscape:p-4'>
+            <menu class='flex flex-row flex-wrap custom-scroll-bar landscape:overflow-y-scroll landscape:p-4'>
                 <ScrubInput
                     label='X'
                     value={settings.folds.oX}
