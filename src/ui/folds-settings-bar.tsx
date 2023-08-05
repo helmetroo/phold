@@ -243,6 +243,7 @@ function ScrubInput(props: ScrubInputProps) {
         const inputStyle = getComputedStyle(elem);
         range.style.position = 'absolute';
         range.style.margin = inputStyle.margin;
+        range.style.padding = inputStyle.padding;
         range.style.left = '0';
         range.style.border = '1px solid transparent';
         range.style.opacity = '0';
@@ -269,7 +270,6 @@ function ScrubInput(props: ScrubInputProps) {
         };
     }, []);
 
-    // The pl-4 on the input pushes its text more to the center
     return (
         <li class='flex flex-row flex-[50%] w-[50%] h-[3rem] items-center'>
             <span class='text-white mx-3'>
@@ -277,7 +277,7 @@ function ScrubInput(props: ScrubInputProps) {
             </span>
             <input
                 ref={elemRef}
-                class='bg-black text-white text-center p-1 pl-4 rounded flex-1 w-full'
+                class='custom-number-input bg-black text-white text-center p-1 rounded flex-1 w-full'
                 type='number'
                 value={value}
                 step={step ?? 0.1}

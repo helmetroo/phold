@@ -34,6 +34,14 @@
 .custom-scroll-bar::-webkit-scrollbar-thumb {
     border-radius: 1rem;
 }
+
+/* Trick to allow value in number inputs to be centered */
+.custom-number-input::-webkit-inner-spin-button,
+.custom-number-input::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+}
+
 body {
     font-family: 'Victor Mono', ui-monospace, monospace;
     -webkit-font-smoothing: antialiased;
