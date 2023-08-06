@@ -249,19 +249,27 @@ export default class App extends Component {
             return;
 
         this.sourceManager.pauseCurrent();
-
         this.stopAll();
 
         if (this.sourceManager.currentType === 'image')
             this.sourceManager.destroyCurrent();
-        await this.sourceManager.setAndLoadFromImage(chosenFile);
-        this.syncSource();
 
+        try {
+            await this.sourceManager.setAndLoadFromImage(chosenFile);
+        } catch (err) {
+            this.onError(err as Error);
+
+            this.sourceManager.resumeCurrent();
+            this.startAll();
+
+            return;
+        }
+
+        this.syncSource();
         renderCanvas.resizeToContainer();
 
         const imageFaces = await this.faceWatcher.detectFaces();
         this.setFoldsFromFaces(imageFaces);
-
         this.renderer.forceRender();
 
         this.confirmingChosenPhoto.value = true;

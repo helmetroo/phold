@@ -1,3 +1,4 @@
+import AppError from '@/types/app-error';
 import Dimensions from '@/types/dimensions';
 import Source from '@/types/source';
 import ChosenFile from '@/types/chosen-file';
@@ -16,8 +17,8 @@ export default class ImageSource extends Source {
         this.image.src = chosenFile.url;
     }
 
-    async load() {
-        await new Promise<void>((resolve, reject) => {
+    load() {
+        return new Promise<void>((resolve, reject) => {
             this.image.onload = () => {
                 this.hasLoaded = true;
                 this.imageDimensions.width = this.image.width;
@@ -26,7 +27,15 @@ export default class ImageSource extends Source {
                 resolve();
             };
 
-            this.image.onerror = reject;
+            this.image.onerror = () => {
+                const loadErr = new AppError(
+                    'ImageLoadErr', [
+                    'Image not supported.',
+                    'gif, jpg, png and webp typically work best with this app.'
+                ]);
+
+                reject(loadErr);
+            };
         });
     }
 

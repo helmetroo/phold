@@ -46,7 +46,7 @@ export default function PickImageButton({ chooseCallback }: Props) {
             <Icon name='upload' classes='w-full h-full stroke-white' />
             <input
                 type='file'
-                accept='image/*'
+                accept='image/apng, image/avif, image/gif, image/jpeg, image/png, image/svg+xml, image/webp'
                 onChange={onChangeFile}
                 ref={fileInput}
                 hidden
