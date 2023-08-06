@@ -344,7 +344,7 @@ export default class App extends Component {
         this.logError(err);
 
         // Prevent new errors from updating if error modal already showing
-        if (this.error.showing.value)
+        if (!this.error.showing.value)
             this.showError(err);
     }
 
