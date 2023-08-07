@@ -1,5 +1,4 @@
 import type Source from '@/types/source';
-import type Callback from '@/types/callback';
 import type ChosenFile from '@/types/chosen-file';
 
 import CameraSource from './camera';
@@ -7,22 +6,10 @@ import ImageSource from './image';
 import BlankSource from './blank';
 
 type CurrentSourceType = 'camera' | 'image' | 'blank';
-interface Events {
-    beforeCameraReloads: Callback,
-    onCameraReloaded: Callback
-}
 export default class SourceManager {
     private currentSourceType: CurrentSourceType = 'blank';
     private currentSource: Source = new BlankSource();
     private camera: CameraSource = new CameraSource();
-
-    private beforeCameraReloads: Callback;
-    private onCameraReloaded: Callback;
-
-    constructor(events: Events) {
-        this.beforeCameraReloads = events.beforeCameraReloads;
-        this.onCameraReloaded = events.onCameraReloaded;
-    }
 
     async initCamera() {
         try {
@@ -30,8 +17,6 @@ export default class SourceManager {
 
             this.currentSource = this.camera;
             this.currentSourceType = 'camera';
-
-            this.watchForNeededCameraRefresh();
         } catch (err) {
             this.camera.destroy();
 
@@ -40,26 +25,6 @@ export default class SourceManager {
 
             throw err;
         }
-    }
-
-    private watchForNeededCameraRefresh() {
-        if (screen && screen.orientation) {
-            screen.orientation.addEventListener(
-                'change',
-                this.refreshCamera.bind(this)
-            );
-        } else {
-            window.addEventListener(
-                'orientationchange',
-                this.refreshCamera.bind(this)
-            );
-        }
-    }
-
-    async refreshCamera() {
-        this.beforeCameraReloads();
-        await this.loadCurrent();
-        this.onCameraReloaded();
     }
 
     async setAndLoadFromImage(chosenFile: ChosenFile) {
@@ -92,12 +57,20 @@ export default class SourceManager {
         await this.currentSource.load();
     }
 
+    async loadCamera() {
+        await this.camera.load();
+    }
+
     pauseCurrent() {
         this.currentSource.pause();
     }
 
     async resumeCurrent() {
         await this.currentSource.resume();
+    }
+
+    async resumeCamera() {
+        await this.camera.resume();
     }
 
     destroyCurrent() {

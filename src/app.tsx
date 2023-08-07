@@ -24,10 +24,7 @@ import isOniOS from '@/utils/is-on-ios';
 
 export default class App extends Component {
     // Objects
-    private sourceManager = new SourceManager({
-        beforeCameraReloads: this.beforeCameraReloads.bind(this),
-        onCameraReloaded: this.onCameraReloaded.bind(this)
-    });
+    private sourceManager = new SourceManager();
     private faceWatcher = new FaceWatcher(this.onDetectFaces.bind(this));
     private renderer = new Renderer(this.onRequestResize.bind(this));
 
@@ -48,6 +45,8 @@ export default class App extends Component {
         faceWatcher: false,
         camera: false,
     };
+    private orientationTypeBeforeChoosingImage: OrientationType | 'unknown' =
+        'unknown';
 
     static contextType = SettingsCtx;
     declare context: ContextType<typeof SettingsCtx>;
@@ -99,18 +98,20 @@ export default class App extends Component {
             const newOrientationType =
                 this.context.orientationType.value;
 
-            const [appContainer] = document.getElementsByTagName('main');
-            if (!appContainer)
-                return;
+            // Set flex direction of app ctr
+            App.setFlexDirection(newOrientationType);
 
-            App.setFlexDirection(appContainer, newOrientationType);
+            // Refresh camera if active
+            if (this.sourceManager.currentType === 'camera')
+                this.refreshCamera();
         });
     }
 
-    private static setFlexDirection(
-        container: HTMLElement,
-        orientationType: OrientationType
-    ) {
+    private static setFlexDirection(orientationType: OrientationType) {
+        const [container] = document.getElementsByTagName('main');
+        if (!container)
+            return;
+
         container.style.flexDirection = 'column';
 
         if (orientationType === 'landscape-primary') {
@@ -137,7 +138,7 @@ export default class App extends Component {
         // so we need to refresh the camera :(
         const oniOS = isOniOS();
         if (oniOS)
-            this.sourceManager.refreshCamera();
+            this.refreshCamera();
         else
             this.resumeCamera();
     }
@@ -159,7 +160,7 @@ export default class App extends Component {
             (() => foldsSettings.value)();
 
             // Recalculate folds if we're rendering an image
-            if (this.sourceManager.currentType === 'camera')
+            if (this.sourceManager.currentType !== 'image')
                 return;
 
             this.setFoldsFromFaces(this.faceWatcher.faces);
@@ -248,19 +249,17 @@ export default class App extends Component {
         if (!renderCanvas)
             return;
 
+        this.orientationTypeBeforeChoosingImage =
+            this.context.orientationType.value;
+
         this.sourceManager.pauseCurrent();
         this.stopAll();
-
-        if (this.sourceManager.currentType === 'image')
-            this.sourceManager.destroyCurrent();
 
         try {
             await this.sourceManager.setAndLoadFromImage(chosenFile);
         } catch (err) {
             this.onError(err as Error);
-
-            this.sourceManager.resumeCurrent();
-            this.startAll();
+            await this.resumeCamera();
 
             return;
         }
@@ -374,17 +373,9 @@ export default class App extends Component {
         this.renderCanvas.current?.resizeToContainer();
     }
 
-    private beforeCameraReloads() {
-        this.stopAll();
-    }
-
-    private async onCameraReloaded() {
-        await this.resumeCamera();
-    }
-
     private async resumeCamera() {
         if (this.availableFeatures.camera)
-            await this.sourceManager.resumeCurrent();
+            await this.sourceManager.resumeCamera();
 
         this.startAll();
         this.renderer.forceRender();
@@ -416,14 +407,30 @@ export default class App extends Component {
     }
 
     private async switchToCamera() {
+        // Must refresh camera if orientation changed
+        const mustRefresh = this.orientationTypeBeforeChoosingImage
+            !== this.context.orientationType.value;
+
+        if (mustRefresh)
+            await this.refreshCamera();
+
         this.sourceManager.switchToCamera();
-        await this.sourceManager.resumeCurrent();
+
+        // Camera already playing if refreshed
+        if (!mustRefresh)
+            await this.sourceManager.resumeCurrent();
 
         // Force render necessary either here or before we do the resize canvas to ctr
         this.startAll();
         this.renderer.forceRender();
 
         this.confirmingChosenPhoto.value = false;
+    }
+
+    private async refreshCamera() {
+        this.stopAll();
+        await this.sourceManager.loadCamera();
+        await this.resumeCamera();
     }
 
     render() {
