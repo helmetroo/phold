@@ -15,7 +15,7 @@ export default class ShutterFlash extends Component {
     render() {
         return (
             <div
-                class={`${this.animating.value ? 'block animate-shutter-flash' : 'hidden'} absolute w-full h-full z-10`}
+                class={`${this.animating.value ? 'block animate-shutter-flash' : 'hidden'} absolute w-full h-full z-20`}
                 onAnimationEnd={this.stopAnimating.bind(this)}
             />
         );

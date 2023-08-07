@@ -11,7 +11,7 @@ import type Callback from '@/types/callback';
 interface Props {
     visible: Signal<boolean>,
 }
-export default function FoldsSettingsBar({ visible }: Props) {
+export default function FoldsSettingsDrawer({ visible }: Props) {
     const elemRef = useRef<HTMLElement>(null);
 
     const {
@@ -35,7 +35,7 @@ export default function FoldsSettingsBar({ visible }: Props) {
         elem.style.right = 'auto';
 
         if (orientationType === 'landscape-primary') {
-            // The 4 - (~0.3rem) comes from the width/height of the settings bar
+            // The 4 - (~0.3rem) comes from the width/height of the settings drawer
             // The 0.3rem difference accounts for the little gap in between
             elem.style.left = `-${elem.offsetWidth}`;
             elem.style.transform = visible ? 'translateX(3.7rem)' : 'translateX(-100%)';
@@ -62,7 +62,7 @@ export default function FoldsSettingsBar({ visible }: Props) {
     return (
         <section
             ref={elemRef}
-            class='flex relative landscape:absolute z-[-1] top-0 portrait:w-full landscape:w-72 landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
+            class='flex relative landscape:absolute z-[9] top-0 portrait:w-full landscape:w-72 landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
             <menu class='flex flex-row flex-wrap custom-scroll-bar landscape:overflow-y-scroll landscape:p-4'>
                 <ScrubInput
                     label='X'

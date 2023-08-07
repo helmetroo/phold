@@ -28,7 +28,7 @@ export default function ErrorOverlay({ visible, message }: Props) {
     }
 
     return (
-        <section class={`${visible.value ? 'flex' : 'hidden'} flex-col justify-center items-center z-20 bg-black/75 w-full h-full fixed inset-0 m-auto`}>
+        <section class={`${visible.value ? 'flex' : 'hidden'} flex-col justify-center items-center z-30 bg-black/75 w-full h-full fixed inset-0 m-auto`}>
             <section class='flex flex-col text-center m-8 p-6 rounded-md bg-neutral-800 border-neutral-700 border-2 border-solid'>
                 <section>
                     {msgText}
