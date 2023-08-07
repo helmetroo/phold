@@ -39,6 +39,7 @@ export default class App extends Component {
     };
     private confirmingChosenPhoto = signal(false);
     private notConfirmingChosenPhoto = computed(() => !this.confirmingChosenPhoto.value);
+    private camActionsDisabled = signal(false);
 
     private availableFeatures = {
         renderer: false,
@@ -428,9 +429,16 @@ export default class App extends Component {
     }
 
     private async refreshCamera() {
+        this.camActionsDisabled.value = true;
+
         this.stopAll();
-        await this.sourceManager.loadCamera();
-        await this.resumeCamera();
+
+        try {
+            await this.sourceManager.loadCamera();
+            await this.resumeCamera();
+        } finally {
+            this.camActionsDisabled.value = false;
+        }
     }
 
     render() {
@@ -455,6 +463,7 @@ export default class App extends Component {
                 />
                 <ShutterBar
                     visible={this.notConfirmingChosenPhoto}
+                    camActionsDisabled={this.camActionsDisabled}
                     pickImageCallback={this.handleChosenImage.bind(this)}
                     shutterCallback={this.handleShutter.bind(this)}
                     swapCameraCallback={this.handleSwapCamera.bind(this)}

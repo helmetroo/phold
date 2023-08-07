@@ -1,11 +1,13 @@
 import { useSignal } from '@preact/signals';
+import type { Signal } from '@preact/signals';
 
 import type Callback from '@/types/callback';
 
 interface ShutterProps {
+    camActionsDisabled: Signal<boolean>,
     pressCallback: Callback,
 }
-export default function Shutter({ pressCallback }: ShutterProps) {
+export default function Shutter({ camActionsDisabled, pressCallback }: ShutterProps) {
     const animating = useSignal(false);
 
     function onPress() {
@@ -17,6 +19,7 @@ export default function Shutter({ pressCallback }: ShutterProps) {
         <button
             aria-label='Take photo'
             class='w-full h-full rounded-[50%] outline-none bg-transparent justify-center items-center'
+            disabled={camActionsDisabled}
             onClick={onPress}
             onAnimationEnd={() => animating.value = false}
         >

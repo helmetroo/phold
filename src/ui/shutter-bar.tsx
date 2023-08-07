@@ -9,17 +9,19 @@ import Shutter from './shutter';
 import SwapCameraButton from './swap-camera-button';
 
 import type Callback from '@/types/callback';
-import type { FileCallback } from '@/types/callback';
+import type { PromisedCallback, FileCallback } from '@/types/callback';
 
 interface Props {
     visible: Signal<boolean>,
+    camActionsDisabled: Signal<boolean>,
     pickImageCallback: FileCallback,
     shutterCallback: Callback,
-    swapCameraCallback: Callback,
+    swapCameraCallback: PromisedCallback,
 }
 export default function ShutterBar(props: Props) {
     const {
         visible,
+        camActionsDisabled,
         pickImageCallback,
         shutterCallback,
         swapCameraCallback,
@@ -67,10 +69,14 @@ export default function ShutterBar(props: Props) {
                     <PickImageButton chooseCallback={pickImageCallback} />
                 </li>
                 <li class='w-20 h-20'>
-                    <Shutter pressCallback={shutterCallback} />
+                    <Shutter
+                        camActionsDisabled={camActionsDisabled}
+                        pressCallback={shutterCallback} />
                 </li>
                 <li class='w-16 h-16'>
-                    <SwapCameraButton pressCallback={swapCameraCallback} />
+                    <SwapCameraButton
+                        camActionsDisabled={camActionsDisabled}
+                        pressCallback={swapCameraCallback} />
                 </li>
             </menu>
         </section>
