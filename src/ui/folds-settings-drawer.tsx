@@ -62,7 +62,7 @@ export default function FoldsSettingsDrawer({ visible }: Props) {
     return (
         <section
             ref={elemRef}
-            class='flex relative landscape:absolute z-[9] top-0 portrait:w-full landscape:w-72 landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
+            class='flex relative landscape:absolute z-[9] top-0 portrait:w-full landscape:w-[21rem] landscape:h-full portrait:px-6 portrait:pb-6 portrait:pt-3 bg-neutral-950/70 transition-transform delay-[0.15s]'>
             <menu class='flex flex-row flex-wrap custom-scroll-bar landscape:overflow-y-scroll landscape:p-4'>
                 <ScrubInput
                     label='X'
