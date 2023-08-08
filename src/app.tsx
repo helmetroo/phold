@@ -26,7 +26,7 @@ export default class App extends Component {
     // Objects
     private sourceManager = new SourceManager();
     private faceWatcher = new FaceWatcher(this.onDetectFaces.bind(this));
-    private renderer = new Renderer(this.onRequestResize.bind(this));
+    private renderer = new Renderer(this.resizeCanvasToContainer.bind(this));
 
     // Refs
     private renderCanvas = createRef<RenderCanvas>();
@@ -64,7 +64,7 @@ export default class App extends Component {
 
             // Need to ensure container resized and render step happens (latter necessary?) on iOS
             this.renderer.start();
-            this.renderCanvas.current?.resizeToContainer();
+            this.resizeCanvasToContainer();
             this.renderer.forceRender();
 
             this.hideLoader();
@@ -74,7 +74,7 @@ export default class App extends Component {
             this.faceWatcher.start();
         });
 
-        this.watchForOrientationTypeChange();
+        this.handleWindowDimsChange();
         this.watchForAppFocusAndBlur();
         this.watchForFoldsSettingsChanges();
     }
@@ -94,7 +94,8 @@ export default class App extends Component {
         }
     }
 
-    private watchForOrientationTypeChange() {
+    private handleWindowDimsChange() {
+        // Handle orientation change
         effect(() => {
             const newOrientationType =
                 this.context.orientationType.value;
@@ -105,6 +106,13 @@ export default class App extends Component {
             // Refresh camera if active
             if (this.sourceManager.currentType === 'camera')
                 this.refreshCamera();
+        });
+
+        // Handle resizes
+        effect(() => {
+            (() => this.context.lastResizeTime.value)();
+
+            this.resizeCanvasToContainer();
         });
     }
 
@@ -266,7 +274,7 @@ export default class App extends Component {
         }
 
         this.syncSource();
-        renderCanvas.resizeToContainer();
+        this.resizeCanvasToContainer();
 
         const imageFaces = await this.faceWatcher.detectFaces();
         this.setFoldsFromFaces(imageFaces);
@@ -283,8 +291,6 @@ export default class App extends Component {
         this.faceWatcher.stop();
         this.sourceManager.pauseCurrent();
 
-        renderCanvas.stopWatchingResizes();
-
         // Anims
         this.shutterFlash.current?.animate();
 
@@ -293,10 +299,8 @@ export default class App extends Component {
         renderCanvas.resizeToDimensions(srcDims);
         App.downloadCanvasImage(this.renderer, renderCanvas).then(() => {
             // After resizing we have to render again or the canvas goes blank
-            renderCanvas.resizeToContainer();
+            this.resizeCanvasToContainer();
             this.renderer.forceRender();
-
-            renderCanvas.watchResizes();
         });
 
         // Keep playing video while the canvas image download may be happening
@@ -312,16 +316,13 @@ export default class App extends Component {
         this.sourceManager.pauseCurrent();
         this.stopAll();
 
-        renderCanvas.stopWatchingResizes();
-
         await this.sourceManager.swapCamera();
         await this.sourceManager.resumeCurrent();
 
         this.startAll();
 
-        renderCanvas.resizeToContainer();
+        this.resizeCanvasToContainer();
         this.renderer.forceRender();
-        renderCanvas.watchResizes();
     }
 
     private static async downloadCanvasImage(renderer: Renderer, renderCanvas: RenderCanvas) {
@@ -370,7 +371,7 @@ export default class App extends Component {
         this.error.message.value = errMessage;
     }
 
-    private onRequestResize() {
+    private resizeCanvasToContainer() {
         this.renderCanvas.current?.resizeToContainer();
     }
 
@@ -387,18 +388,14 @@ export default class App extends Component {
         if (!renderCanvas)
             return;
 
-        renderCanvas.stopWatchingResizes();
-
         // Temporarily resize canvas to match original image size, then download
         const srcDims = this.sourceManager.current.getDimensions();
         renderCanvas.resizeToDimensions(srcDims);
         await App.downloadCanvasImage(this.renderer, renderCanvas);
 
         // After resizing we have to render again or the canvas goes blank
-        renderCanvas.resizeToContainer();
+        this.resizeCanvasToContainer();
         this.renderer.forceRender();
-
-        renderCanvas.watchResizes();
 
         await this.switchToCamera();
     }

@@ -9,10 +9,6 @@ export default class RenderCanvas extends Component<Props> {
     private canvasRef = createRef<HTMLCanvasElement>();
     private ctrRef = createRef<HTMLElement>();
 
-    // Canvas resizing
-    private resizeObserver: ResizeObserver
-        = new ResizeObserver(this.onResize.bind(this));
-
     private srcDimensions: Dimensions = {
         width: 1,
         height: 1,
@@ -24,44 +20,6 @@ export default class RenderCanvas extends Component<Props> {
 
     syncDimensions(newSrcDimensions: Dimensions) {
         this.srcDimensions = newSrcDimensions;
-    }
-
-    componentDidMount() {
-        this.watchResizes();
-    }
-
-    componentWillUnmount() {
-        this.stopWatchingResizes();
-    }
-
-    watchResizes() {
-        const canvas = this.canvasRef.current;
-        if (!canvas)
-            return;
-
-        this.resizeObserver.observe(canvas, {
-            box: 'content-box'
-        });
-
-        if (screen && screen.orientation) {
-            screen.orientation.addEventListener(
-                'change',
-                this.resizeToContainer.bind(this)
-            );
-        } else {
-            window.addEventListener(
-                'orientationchange',
-                this.resizeToContainer.bind(this)
-            );
-        }
-    }
-
-    stopWatchingResizes() {
-        const canvas = this.canvasRef.current;
-        if (!canvas)
-            return;
-
-        this.resizeObserver.unobserve(canvas);
     }
 
     resizeToContainer() {
@@ -99,10 +57,6 @@ export default class RenderCanvas extends Component<Props> {
 
         canvas.width = width;
         canvas.height = height;
-    }
-
-    private onResize(_: ResizeObserverEntry[]) {
-        this.resizeToContainer();
     }
 
     getDataUrl() {

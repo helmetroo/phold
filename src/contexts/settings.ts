@@ -53,30 +53,37 @@ function createDefaultSettings() {
     };
 }
 
-function watchForWindowAspectRatioChange(signal: Signal<OrientationType>) {
-    function updateOrientationType() {
-        signal.value = getOrientationType();
+function watchForWindowDimsChange(
+    orientation: Signal<OrientationType>,
+    lastResizeTime: Signal<number>
+) {
+    function updateSignals() {
+        orientation.value = getOrientationType();
+        lastResizeTime.value = new Date().getTime();
     }
 
-    const resizeObserver = new ResizeObserver(updateOrientationType);
-    resizeObserver.observe(document.body);
+    const resizeObserver = new ResizeObserver(updateSignals);
+    resizeObserver.observe(document.body, {
+        box: 'border-box'
+    });
 
     if (screen && screen.orientation) {
         screen.orientation.addEventListener(
             'change',
-            updateOrientationType
+            updateSignals
         );
     } else {
         window.addEventListener(
             'orientationchange',
-            updateOrientationType
+            updateSignals
         );
     }
 }
 
 const SettingsCtx = createContext({
     settings: createDefaultSettings(),
-    orientationType: signal(getOrientationType())
+    orientationType: signal(getOrientationType()),
+    lastResizeTime: signal(new Date().getTime()),
 });
 
 function createSettingsState() {
@@ -84,11 +91,13 @@ function createSettingsState() {
     const settings = createDefaultSettings();
 
     const orientationType = signal(getOrientationType());
-    watchForWindowAspectRatioChange(orientationType);
+    const lastResizeTime = signal(new Date().getTime());
+    watchForWindowDimsChange(orientationType, lastResizeTime);
 
     return {
         settings,
         orientationType,
+        lastResizeTime,
     };
 }
 
