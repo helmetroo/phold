@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
             glsl(),
             Unfonts({
                 google: {
-                    families: ['Victor Mono']
+                    families: ['JetBrains Mono']
                 }
             }),
             VitePWA({
