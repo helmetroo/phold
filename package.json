@@ -25,7 +25,7 @@
     "vite-tsconfig-paths": "^4.2.0"
   },
   "dependencies": {
-    "@preact/signals": "^1.2.0",
+    "@preact/signals": "^1.2.1",
     "@vercel/analytics": "^1.0.2",
     "face-api.js": "^0.22.2",
     "gl-matrix": "^3.4.3",
