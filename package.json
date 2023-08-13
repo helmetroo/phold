@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@preact/signals": "^1.2.0",
+    "@vercel/analytics": "^1.0.2",
     "face-api.js": "^0.22.2",
     "gl-matrix": "^3.4.3",
     "preact": "^10.16.0"
